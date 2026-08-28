@@ -452,7 +452,7 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Automated
 
-- [ ] 1.1 `bash -n devcontainer/run.sh` oraz `bash -n devcontainer/cleanup.sh` kończą się kodem 0
+- [x] 1.1 `bash -n devcontainer/run.sh` oraz `bash -n devcontainer/cleanup.sh` kończą się kodem 0 — e268c23
 
 #### Manual
 
