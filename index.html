@@ -69,14 +69,12 @@
   .steps i.on{background:var(--mint)}
   .steps i.done{background:rgba(110,231,168,.4)}
   .manifest{
-    margin:0 0 22px;padding:14px 16px;border-radius:10px;
+    margin:0 0 22px;border-radius:10px;overflow:hidden;
     background:linear-gradient(180deg,rgba(110,231,168,.09),rgba(110,231,168,.03));
     border:1px solid rgba(110,231,168,.25);
   }
-  .manifest .tag{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:8px}
-  .manifest .tag b{font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--mint)}
-  .manifest .tag span{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
-  .manifest p{font-family:var(--serif);font-size:15px;line-height:1.6;color:#cdd5df;margin:0}
+  .manifest img{display:block;width:100%;height:auto;border-bottom:1px solid rgba(110,231,168,.2)}
+  .manifest p{font-family:var(--serif);font-size:15px;line-height:1.6;color:#cdd5df;margin:0;padding:14px 16px}
   .manifest p em{color:var(--ink);font-style:normal;font-weight:600}
   .kicker{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
   h1{font-size:25px;line-height:1.25;margin:0 0 18px;letter-spacing:-.02em;font-weight:600}
@@ -551,8 +549,8 @@ function render(){
   pane.innerHTML =
     dots(idx)
   + (s.manifest
-      ? '<div class="manifest"><div class="tag"><b>KAPŚT!</b>'
-        + '<span>Koalicja Agentów Przeciwko Ścianie Tekstu</span></div>'
+      ? '<div class="manifest">'
+        + '<img src="kapst.jpeg" width="1408" height="768" alt="KAPŚT! — Koalicja Agentów Przeciwko Ścianom Tekstu. Aktywny learning skilli agentic AI, bez czytania suchego bla bla bla.">'
         + '<p>' + s.manifest + '</p></div>'
       : "")
   + '<div class="kicker">' + s.kicker + '</div>'
