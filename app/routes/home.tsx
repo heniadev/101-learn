@@ -1,7 +1,9 @@
 import type { Route } from "./+types/home";
 import { getTerminalUrl } from "~/lib/terminal-url.server";
+import { CommandChip } from "~/components/CommandChip";
 import { KapstCard } from "~/components/KapstCard";
 import { LessonNav, LessonPane } from "~/components/LessonPane";
+import { StepProgress } from "~/components/StepProgress";
 import { TerminalPane } from "~/components/TerminalPane";
 import { TopBar } from "~/components/TopBar";
 
@@ -28,28 +30,37 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       <TopBar />
 
       <main className="flex min-h-0 flex-1 max-lg:flex-col">
-        <LessonPane
-          nav={<LessonNav status="krok 1 z 3" />}
-        >
+        <LessonPane nav={<LessonNav status="krok 1 z 3" />}>
+          <StepProgress total={3} current={0} />
           <KapstCard />
 
-          {/* Step text and the gate that unlocks "Dalej" land here in their
-              own slices; this pane already carries their styling. */}
+          {/* Placeholder for the course-content slice: the first step's text
+              wired through the styled pieces, so whatever replaces it lands in
+              a pane that already looks right. The gate that unlocks "Dalej"
+              (FR-050) belongs to its own slice and is off here. */}
           <div className="kicker mb-2.5">Krok 1 z 3 · fundament</div>
-          <h1 className="mb-[18px] text-[25px] font-semibold leading-[1.25] tracking-[-0.02em]">
-            Treść kroku pojawi się tutaj
+          <h1 className="mb-[18px] text-[25px] leading-[1.25] font-semibold tracking-[-0.02em]">
+            Zrób miejsce na pamięć projektu
           </h1>
           <div className="lesson-prose">
             <p>
-              Prawy panel jest już prawdziwy: działa w nim <code>git</code>,
-              działają zwykłe edytory, a sesję resetujesz przeładowaniem strony.
+              Toolkit nie trzyma pamięci w rozmowie — trzyma ją w plikach.
+              Możesz zamknąć laptopa w dowolnym momencie i wrócić jutro
+              dokładnie tam, gdzie skończyłeś.
             </p>
             <p>
-              Lewy czeka na treść kursu — akapity kroku i bramkę, która odblokuje{" "}
-              <em>Dalej</em> dopiero wtedy, gdy krok zostanie faktycznie
-              wykonany.
+              <code>/101-init</code> zakłada drzewo <code>context/</code>:{" "}
+              <code>foundation/</code> na dokumenty żyjące tyle co projekt,{" "}
+              <code>changes/</code> na pracę w toku, <code>archive/</code> na
+              zamknięte zmiany. Niczego nie nadpisuje.
+            </p>
+            <p>
+              Wpisz komendę w terminalu po prawej. To prawdziwa powłoka —
+              działa w niej <code>git</code> i zwykłe edytory.
             </p>
           </div>
+
+          <CommandChip command="/101-init" />
         </LessonPane>
 
         <TerminalPane src={terminalUrl} />
