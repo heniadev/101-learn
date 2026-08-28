@@ -56,6 +56,19 @@ samego Claude Code (podpowiedzi następnego wpisu, tytuł rozmowy), nie ścieżk
 kursu. Jeśli podczas próby pojawi się ich więcej, w `replay` chybią 400.
 Dogrywa się je jednym przejściem w `auto`, po czym wraca do `replay`.
 
+## 5. Nie odtwarzaj `/course` po 28 sierpnia
+
+Normalizator usuwa daty w formacie `2026-08-28` i godziny `12:34` — **nie**
+usuwa `Aug 28` z wyjścia `ls -la`. Znacznik czasu `.claude` przenosi `cp -a`,
+ale sam `/course` powstaje na nowo i dostaje datę dnia, w którym go
+odtworzysz. Odtworzony 29 sierpnia da w turze 4 `Aug 29` i chybi.
+
+Jeśli musisz, wyrównaj katalog po odtworzeniu:
+
+```bash
+sudo touch -d '2026-08-28 11:51' /course
+```
+
 ## Stan weryfikacji (2026-08-28)
 
 Sprawdzone automatem, bez przejścia ścieżki:
@@ -65,7 +78,9 @@ Sprawdzone automatem, bez przejścia ścieżki:
 | kompletność strumienia (`message_stop`) | 53/53 |
 | zdarzenia `error` w nagraniach | 0 |
 | sekrety (klucze API, `creds.yaml`, wzorce) | 0 trafień |
-| odtwarzanie na nagraniach pierwszej tury | 2/2 |
+| odtwarzanie pierwszej tury w trybie `replay` | 2/2 |
+| `ls -la /course/` po znormalizowaniu vs tura 4 | identyczne |
+| wersja toolkitu vs nagranie | 30 katalogów skilli, rozmiary zgodne |
 
 **Niesprawdzone:** trafienie 51 tur środkowych. Ich klucz zależy od pełnej
 historii z wynikami narzędzi, więc jedynym testem jest przejście ścieżki w
