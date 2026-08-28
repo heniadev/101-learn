@@ -5,8 +5,8 @@
 # to the host's git config for the identity), then hands off to Claude Code.
 #
 # The two are deliberately separate: the *account* the push authenticates as
-# may be a bot, while the *author* of the commits is the person directing the
-# work. Only a person can make the Signed-off-by representation.
+# may be a shared or bot account, while the *author* of the commits is the
+# person directing the work.
 set -euo pipefail
 
 CREDENTIAL_STORE="${HOME}/.git-credentials"
