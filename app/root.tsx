@@ -16,14 +16,28 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl">
+    // suppressHydrationWarning on <html> and <body> is load-bearing for the
+    // terminal, not cosmetic. Browser extensions stamp their own attributes on
+    // these two elements before React hydrates -- ColorZilla writes
+    // cz-shortcut-listen, a VPN extension writes inject_vt_svd. React sees the
+    // server HTML and the client DOM disagree, gives up on hydrating that tree
+    // and re-renders it from scratch, which recreates every DOM node under it.
+    // One of those nodes is the terminal <iframe>: recreating it reloads the
+    // page inside, which drops ttyd's websocket and takes the running shell
+    // down with it. On a machine with such an extension the panel then sits on
+    // "łączę z terminalem…" and reconnects in a loop.
+    //
+    // The flag tells React to keep the server's markup for these elements and
+    // stop treating a foreign attribute as a mismatch. It covers attributes
+    // only, so it cannot hide a real content mismatch in the app's own markup.
+    <html lang="pl" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <ScrollRestoration />
         <Scripts />
