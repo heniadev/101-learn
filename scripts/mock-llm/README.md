@@ -51,7 +51,7 @@ thing once, while doing the work you were going to do anyway.
 4. Re-run the same prompts in replay mode and watch them come back identically.
 
 For a rehearsal that must not hit the network at all, use `replay`. A prompt
-with no recording then fails **loudly** with HTTP 409 and a message naming the
+with no recording then fails **loudly** with HTTP 400 and a message naming the
 exact prompt to capture — never a silent fallback to a live call nobody
 expected during a demo.
 
