@@ -12,3 +12,7 @@ devcontainer/creds.yaml
 # toolkit 101 mieszka w osobnym repo
 .claude/
 /scripts/mock-llm/misses/
+
+# Editor swap files -- a stray .swp in the repo root is one keystroke away.
+*.swp
+*.swo
