@@ -26,9 +26,34 @@ fi
 #
 # --writable must be passed explicitly. Without it the terminal renders fine
 # but silently ignores all keyboard input — an easy-to-misdiagnose failure.
+# Client options (-t key=value) reach the browser as terminal preferences over
+# the websocket, so the terminal wears the app's palette instead of xterm's
+# default grey. Same tokens as app/app.css -- if one changes, change both.
+#
+# disableLeaveAlert matters for the product rule, not for looks: reloading the
+# page is how the course resets (FR-080), and the browser's "leave site?"
+# prompt would stand in the way of it.
+TERMINAL_THEME='{
+  "background": "#08090b", "foreground": "#c9d2dc",
+  "cursor": "#6ee7a8", "cursorAccent": "#08090b",
+  "selectionBackground": "#6ee7a833",
+  "black": "#0b0d10", "red": "#f2807c", "green": "#6ee7a8",
+  "yellow": "#f2bd72", "blue": "#7cc7ff", "magenta": "#c0b3ff",
+  "cyan": "#7ee3d8", "white": "#c9d2dc",
+  "brightBlack": "#6b7787", "brightRed": "#ff9d99", "brightGreen": "#8af0bb",
+  "brightYellow": "#ffd79b", "brightBlue": "#a5dbff", "brightMagenta": "#d6cdff",
+  "brightCyan": "#9df0e6", "brightWhite": "#e7eaef"
+}'
+
 exec ttyd \
   --port "${TERMINAL_PORT}" \
   --interface 127.0.0.1 \
   --writable \
   --cwd "${REPO_DIR}" \
+  -t "theme=${TERMINAL_THEME}" \
+  -t 'fontFamily=SFMono-Regular, ui-monospace, JetBrains Mono, Menlo, Consolas, monospace' \
+  -t fontSize=14 \
+  -t cursorBlink=true \
+  -t disableLeaveAlert=true \
+  -t disableResizeOverlay=true \
   bash

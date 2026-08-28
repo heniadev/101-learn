@@ -92,7 +92,7 @@ export function TerminalPane({ src }: { src: string }) {
         <iframe
           src={src}
           title="Terminal kursu"
-          className="absolute top-0 left-0 border-0"
+          className="absolute top-0 left-0 border-0 bg-term"
           style={{ zoom, width: `${100 / zoom}%`, height: `${100 / zoom}%` }}
           scrolling="no"
         />
