@@ -586,12 +586,13 @@ let draft = "";                      // wpisywane, odłożone na czas przegląda
 let busy = false;                    // trwa odtwarzanie odpowiedzi
 let done = STEPS.map(() => false);
 let outro = false;
+let agentUp = false;              // czy sesja agenta już wstała
 let history = [];                    // zamknięte linie scrollbacku
 
 function esc(s){ return s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
-function ps1(step){
-  return step.ps === "agent"
+function ps1(){
+  return agentUp
     ? '<span class="ps1">&gt;</span> '
     : '<span class="ps1">learner@101</span><span class="dim">:</span><span class="cwd">'
       + esc(cwd.replace(HOME, "~")) + '</span><span class="dim">$</span> ';
@@ -602,7 +603,7 @@ function promptHTML(withCursor, text){
   const t = text === undefined ? buf : text;
   // podpowiedź-widmo tylko dopóki wpisane jest początkiem komendy kroku
   const ghost = (!done[idx] && cmd.indexOf(t) === 0) ? cmd.slice(t.length) : "";
-  return ps1(s) + esc(t)
+  return ps1() + esc(t)
        + (withCursor ? '<span class="cursor"></span>' : "")
        + '<span class="ghost">' + esc(ghost) + '</span>';
 }
@@ -618,7 +619,7 @@ function push(text, cls){ history.push({ t: text, c: cls || "" }); }
 
 function emit(out, said){
   const step = STEPS[idx];
-  if (step.ps !== "agent"){
+  if (!agentUp){
     out.forEach(l => push(esc(l[0]), l[1]));
     return;
   }
@@ -650,10 +651,10 @@ function submit(){
   if (said === ""){ paint(); return; }
   if (!done[idx] && said === step.command){ run(); return; }
 
-  const out = said === "/help" && step.ps === "agent" ? HELP : sh(said);
+  const out = said === "/help" && agentUp ? HELP : sh(said);
   if (out){ emit(out, said); paint(); return; }
 
-  snark(done[idx] ? DONE_SNARK : (step.ps === "agent" ? AGENT_SNARK : SHELL_SNARK), said);
+  snark(done[idx] ? DONE_SNARK : (agentUp ? AGENT_SNARK : SHELL_SNARK), said);
   paint();
 }
 
@@ -670,7 +671,7 @@ function run(){
       busy = false;
       done[idx] = true;
       hint.textContent = "krok wykonany — „Dalej” po lewej";
-      if (idx === 0) ttitle.textContent = "claude — /workspace";
+      if (idx === 0){ agentUp = true; ttitle.textContent = "claude — /workspace"; }
       render();
       return;
     }
