@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Route } from "./+types/home";
 import { getTerminalUrl } from "~/lib/terminal-url.server";
 import { CommandChip } from "~/components/CommandChip";
@@ -6,6 +7,7 @@ import { LessonNav, LessonPane } from "~/components/LessonPane";
 import { StepProgress } from "~/components/StepProgress";
 import { TerminalPane } from "~/components/TerminalPane";
 import { TopBar } from "~/components/TopBar";
+import { STEPS } from "~/content/steps";
 
 const TITLE = "101-learn — kurs i terminal";
 const DESCRIPTION =
@@ -33,42 +35,50 @@ export function loader({}: Route.LoaderArgs) {
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { terminalUrl } = loaderData;
 
+  // The current step is component state, not a URL segment or stored value, so
+  // reloading the page starts the course over -- which is the entire mechanism
+  // FR-080 asks for. A shareable per-step link would be nice and would break
+  // that, so it is deliberately not here.
+  const [index, setIndex] = useState(0);
+  const step = STEPS[index];
+  const isLast = index === STEPS.length - 1;
+
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden max-lg:h-auto max-lg:min-h-screen max-lg:overflow-visible">
       <TopBar />
 
       <main className="flex min-h-0 flex-1 max-lg:flex-col">
-        <LessonPane nav={<LessonNav status="krok 1 z 3" />}>
-          <StepProgress total={3} current={0} />
+        <LessonPane
+          nav={
+            <LessonNav
+              status={`krok ${index + 1} z ${STEPS.length}`}
+              canGoBack={index > 0}
+              // No gate yet: advancing is not conditioned on the step actually
+              // having been run. That check is S-05 and lives in its own slice.
+              canAdvance={!isLast}
+              onBack={() => setIndex((i) => Math.max(0, i - 1))}
+              onNext={() => setIndex((i) => Math.min(STEPS.length - 1, i + 1))}
+            />
+          }
+        >
+          <StepProgress
+            total={STEPS.length}
+            current={index}
+            done={STEPS.map((_, i) => i < index)}
+          />
           <KapstCard />
 
-          {/* Placeholder for the course-content slice: the first step's text
-              wired through the styled pieces, so whatever replaces it lands in
-              a pane that already looks right. The gate that unlocks "Dalej"
-              (FR-050) belongs to its own slice and is off here. */}
-          <div className="kicker mb-2.5">Krok 1 z 3 · fundament</div>
+          <div className="kicker mb-2.5">{step.kicker}</div>
           <h1 className="mb-[18px] text-[25px] leading-[1.25] font-semibold tracking-[-0.02em]">
-            Zrób miejsce na pamięć projektu
+            {step.title}
           </h1>
-          <div className="lesson-prose">
-            <p>
-              Toolkit nie trzyma pamięci w rozmowie — trzyma ją w plikach.
-              Możesz zamknąć laptopa w dowolnym momencie i wrócić jutro
-              dokładnie tam, gdzie skończyłeś.
-            </p>
-            <p>
-              <code>/101-init</code> zakłada drzewo <code>context/</code>:{" "}
-              <code>foundation/</code> na dokumenty żyjące tyle co projekt,{" "}
-              <code>changes/</code> na pracę w toku, <code>archive/</code> na
-              zamknięte zmiany. Niczego nie nadpisuje.
-            </p>
-            <p>
-              Wpisz komendę w terminalu po prawej. To prawdziwa powłoka —
-              działa w niej <code>git</code> i zwykłe edytory.
-            </p>
-          </div>
+          <div className="lesson-prose">{step.body}</div>
 
-          <CommandChip command="/101-init" />
+          <CommandChip command={step.command} />
+
+          <p className="mt-3 text-[12.5px] text-dim">
+            Powstanie: <code className="font-mono">{step.produces}</code>
+          </p>
         </LessonPane>
 
         <TerminalPane src={terminalUrl} />

@@ -37,23 +37,33 @@ export function LessonNav({
   status,
   canAdvance = false,
   canGoBack = false,
+  onBack,
+  onNext,
 }: {
   status: string;
   canAdvance?: boolean;
   canGoBack?: boolean;
+  onBack?: () => void;
+  onNext?: () => void;
 }) {
   return (
     <div className="flex flex-none items-center gap-3 border-t border-line bg-panel px-[34px] py-3.5">
       <span className="flex-1 text-[12.5px] text-dim">{status}</span>
-      <button type="button" className="btn" disabled={!canGoBack}>
+      <button
+        type="button"
+        className="btn"
+        disabled={!canGoBack}
+        onClick={onBack}
+      >
         Wstecz
       </button>
       <button
         type="button"
         className="btn btn-primary"
         disabled={!canAdvance}
+        onClick={onNext}
         title={
-          canAdvance ? undefined : "Wykonaj krok w terminalu, żeby ruszyć dalej"
+          canAdvance ? undefined : "To ostatni krok ścieżki"
         }
       >
         Dalej
