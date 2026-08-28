@@ -157,6 +157,15 @@ RUN_ARGS=(
   --cap-add=NET_RAW
   --cap-add=SETUID
   --cap-add=SETGID
+  # /course is created by entrypoint.sh and handed to the course user. `cp -a`
+  # preserves the toolkit's ownership and `chown -R` re-targets it: both need
+  # CAP_CHOWN. The `chmod -R` that follows touches files the root process no
+  # longer owns, which needs CAP_FOWNER. Without these two the entrypoint dies
+  # on "Operation not permitted" and the learner is left with a root-owned,
+  # unwritable /course -- and the first course command fails on permissions
+  # rather than on anything the learner did.
+  --cap-add=CHOWN
+  --cap-add=FOWNER
   --security-opt no-new-privileges
   --pids-limit 512
   -e "TARGET_UID=${HOST_UID}"

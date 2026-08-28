@@ -77,11 +77,12 @@ fi
 COURSE_DIR="${COURSE_DIR:-/course}"
 COURSE_TOOLKIT="${COURSE_TOOLKIT:-/workspace/.claude}"
 rm -rf "${COURSE_DIR}"
-install -d -m 755 -o "${TARGET_UID}" -g "${TARGET_GID}" "${COURSE_DIR}"
+install -d -m 755 -o "${TARGET_UID}" -g "${TARGET_GID}" "${COURSE_DIR}" ||:
+install -d -m 755 -o "${TARGET_UID}" -g "${TARGET_GID}" "${COURSE_DIR}/.claude" ||:
 if [ -d "${COURSE_TOOLKIT}/skills" ]; then
-  cp -a "${COURSE_TOOLKIT}" "${COURSE_DIR}/.claude"
-  chown -R "${TARGET_UID}:${TARGET_GID}" "${COURSE_DIR}/.claude"
-  chmod -R u=rwX,go=rX "${COURSE_DIR}/.claude"
+  cp -a "${COURSE_TOOLKIT}" "${COURSE_DIR}/.claude" ||:
+  chown -R "${TARGET_UID}:${TARGET_GID}" "${COURSE_DIR}/.claude" ||:
+  chmod -R u=rwX,go=rX "${COURSE_DIR}/.claude" ||:
 else
   echo "entrypoint.sh: no toolkit at ${COURSE_TOOLKIT}/skills; ${COURSE_DIR} left empty." >&2
 fi
