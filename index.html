@@ -73,7 +73,15 @@
     background:linear-gradient(180deg,rgba(110,231,168,.09),rgba(110,231,168,.03));
     border:1px solid rgba(110,231,168,.25);
   }
-  .manifest img{display:block;width:100%;height:auto;border-bottom:1px solid rgba(110,231,168,.2)}
+  .manifest img{border-bottom:1px solid rgba(110,231,168,.2)}
+  .shot{position:relative}
+  .shot img{display:block;width:100%;height:auto;transition:opacity .3s}
+  .shot img.scanning{opacity:0}
+  .shot canvas{position:absolute;inset:0;width:100%;height:100%;display:none}
+  .shot canvas.on{display:block}
+  .shot .load{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(0,0,0,.45);display:none}
+  .shot .load.on{display:block}
+  .shot .load i{display:block;height:100%;width:0;background:var(--mint);transition:width .2s}
   .manifest p{font-family:var(--serif);font-size:15px;line-height:1.6;color:#cdd5df;margin:0;padding:14px 16px}
   .manifest p em{color:var(--ink);font-style:normal;font-weight:600}
   .kicker{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
@@ -570,6 +578,65 @@ const HELP = [
   ["  ls, cd, cat, less, pwd i clear.", "dim"]
 ];
 
+/* Obrazek dojeżdża tak, jak dojeżdżał progresywny JPEG na modemie: pierwszy
+   przebieg blokowy, potem coraz drobniejsze. To teatr, nie sieć — plik jest
+   już w pamięci. Gra raz na wejście i odpuszcza przy prefers-reduced-motion. */
+const PASSES = [
+  [1/64, 5, 420], [1/32, 4, 340], [1/16, 3, 300],
+  [1/8, 2, 280],  [1/4, 1, 260],  [1/2, 0, 240]
+];
+let scanned = false;
+
+function progressiveScan(){
+  const img = document.getElementById("kapstImg");
+  const canvas = document.getElementById("kapstCanvas");
+  const bar = document.getElementById("kapstBar");
+  if (!img || !canvas || scanned) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  scanned = true;
+
+  const start = () => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = img.naturalWidth || 1408, H = img.naturalHeight || 768;
+    canvas.width = Math.round(W / 2);
+    canvas.height = Math.round(H / 2);
+    img.classList.add("scanning");
+    canvas.classList.add("on");
+    bar.classList.add("on");
+
+    let i = 0;
+    (function draw(){
+      const pass = PASSES[i];
+      if (!pass){
+        img.classList.remove("scanning");
+        canvas.classList.remove("on");
+        bar.classList.remove("on");
+        return;
+      }
+      const [scale, blur, hold] = pass;
+      const w = Math.max(2, Math.round(W * scale)), h = Math.max(2, Math.round(H * scale));
+      const small = document.createElement("canvas");
+      small.width = w; small.height = h;
+      const sctx = small.getContext("2d");
+      sctx.imageSmoothingEnabled = true;
+      sctx.drawImage(img, 0, 0, w, h);
+
+      ctx.filter = blur ? "blur(" + blur + "px)" : "none";
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
+
+      i++;
+      bar.firstElementChild.style.width = Math.round(i / PASSES.length * 100) + "%";
+      setTimeout(draw, hold);
+    })();
+  };
+
+  if (img.complete && img.naturalWidth) start();
+  else img.addEventListener("load", start, { once: true });
+}
+
 const pane   = document.getElementById("pane");
 const screen = document.getElementById("screen");
 const hint   = document.getElementById("hint");
@@ -725,7 +792,11 @@ function render(){
     dots(idx)
   + (s.manifest
       ? '<div class="manifest">'
-        + '<img src="kapst.jpeg" width="1408" height="768" alt="KAPŚT! — Koalicja Agentów Przeciwko Ścianom Tekstu. Aktywny learning skilli agentic AI, bez czytania suchego bla bla bla.">'
+        + '<div class="shot">'
+          + '<img id="kapstImg" src="kapst.jpeg" width="1408" height="768" alt="KAPŚT! — Koalicja Agentów Przeciwko Ścianom Tekstu. Aktywny learning skilli agentic AI, bez czytania suchego bla bla bla.">'
+          + '<canvas id="kapstCanvas" aria-hidden="true"></canvas>'
+          + '<div class="load" id="kapstBar"><i></i></div>'
+        + '</div>'
         + '<p>' + s.manifest + '</p></div>'
       : "")
   + '<div class="kicker">' + s.kicker + '</div>'
@@ -741,6 +812,8 @@ function render(){
         + '<header>' + s.file.path + '<span>powstał po tym kroku</span></header>'
         + '<pre>' + esc(s.file.peek) + '</pre></div>'
       : "");
+
+  if (s.manifest) progressiveScan();
 
   const rb = document.getElementById("runb");
   if (rb) rb.onclick = () => { screen.focus(); buf = s.command; submit(); };
