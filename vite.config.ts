@@ -38,6 +38,19 @@ export default defineConfig({
         changeOrigin: true,
         // ttyd serves from its root, so strip the /terminal prefix.
         rewrite: (path) => path.replace(/^\/terminal/, ""),
+        // `npm run dev` does not start ttyd -- that is a separate
+        // `npm run terminal`. Without this handler a missing terminal process
+        // surfaces as a bare 500 inside the iframe, so the learner sees an
+        // empty half-screen with nothing to act on. Say what to run instead.
+        configure: (proxy) => {
+          proxy.on("error", (_err, _req, res) => {
+            if (!("writeHead" in res)) return; // WebSocket upgrade: no HTTP response to write.
+            res.writeHead(503, { "Content-Type": "text/html; charset=utf-8" });
+            res.end(
+              "<p>Terminal nie działa. Uruchom <code>npm run terminal</code> i odśwież stronę.</p>",
+            );
+          });
+        },
       },
     },
   },
