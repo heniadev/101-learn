@@ -14,9 +14,16 @@ import { pasteIntoTerminal } from "~/lib/terminal-input";
 export function CommandChip({
   command,
   done = false,
+  sigil = "$",
 }: {
   command: string;
   done?: boolean;
+  /**
+   * Which prompt the text is shown behind. `$` is the shell; `>` is a message
+   * to the agent. Step 2 pastes whole sentences ("według sumy głosów") and
+   * behind a `$` those read as a command that does not exist.
+   */
+  sigil?: "$" | ">";
 }) {
   const [feedback, setFeedback] = useState<"inserted" | "copied" | null>(null);
 
@@ -46,8 +53,17 @@ export function CommandChip({
         done ? "border-mint/30 bg-mint/5" : "border-line bg-panel2"
       }`}
     >
-      <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-[13.5px] text-ink">
-        <span className="mr-2 text-dim">$</span>
+      {/* Short commands stay on one line; the long pasted answers of step 2
+          wrap instead, because a sentence scrolled sideways cannot be read
+          before deciding to paste it. */}
+      <code
+        className={`flex-1 font-mono text-[13.5px] text-ink ${
+          command.length > 56
+            ? "break-words whitespace-pre-wrap"
+            : "overflow-x-auto whitespace-nowrap"
+        }`}
+      >
+        <span className="mr-2 select-none text-dim">{sigil}</span>
         {command}
       </code>
 

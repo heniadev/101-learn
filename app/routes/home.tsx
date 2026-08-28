@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { Route } from "./+types/home";
 import { getTerminalUrl } from "~/lib/terminal-url.server";
-import { CommandChip } from "~/components/CommandChip";
 import { KapstCard } from "~/components/KapstCard";
+import { MoveList } from "~/components/MoveList";
 import { LessonNav, LessonPane } from "~/components/LessonPane";
 import { StepProgress } from "~/components/StepProgress";
 import { TerminalPane } from "~/components/TerminalPane";
@@ -74,7 +74,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </h1>
           <div className="lesson-prose">{step.body}</div>
 
-          <CommandChip command={step.command} />
+          <MoveList moves={step.moves} />
 
           <p className="mt-3 text-[12.5px] text-dim">
             Powstanie: <code className="font-mono">{step.produces}</code>
