@@ -68,6 +68,16 @@
   .steps i{height:3px;flex:1;border-radius:2px;background:#232a33;transition:background .3s}
   .steps i.on{background:var(--mint)}
   .steps i.done{background:rgba(110,231,168,.4)}
+  .manifest{
+    margin:0 0 22px;padding:14px 16px;border-radius:10px;
+    background:linear-gradient(180deg,rgba(110,231,168,.09),rgba(110,231,168,.03));
+    border:1px solid rgba(110,231,168,.25);
+  }
+  .manifest .tag{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+  .manifest .tag b{font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--mint)}
+  .manifest .tag span{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+  .manifest p{font-family:var(--serif);font-size:15px;line-height:1.6;color:#cdd5df;margin:0}
+  .manifest p em{color:var(--ink);font-style:normal;font-weight:600}
   .kicker{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
   h1{font-size:25px;line-height:1.25;margin:0 0 18px;letter-spacing:-.02em;font-weight:600}
   .body p{font-family:var(--serif);font-size:16.5px;line-height:1.68;color:#cdd5df;margin:0 0 14px}
@@ -203,6 +213,7 @@
    punktuje wejście, liczy luki i robi self-review przed zapisem. */
 const STEPS = [
   {
+    manifest: "<em>Uczymy się przez robienie, nie przez czytanie.</em> Po ścianie tekstu zostaje w głowie szum — po komendzie, którą sam uruchomiłeś, zostaje plik na dysku. Trzy akapity, jedna komenda, widoczny skutek. Tyle.",
     kicker: "Start · sesja agenta",
     title: "Uruchom agenta",
     label: "start",
@@ -496,6 +507,11 @@ function render(){
   const s = STEPS[idx];
   pane.innerHTML =
     dots(idx)
+  + (s.manifest
+      ? '<div class="manifest"><div class="tag"><b>KAPŚT!</b>'
+        + '<span>Koalicja Agentów Przeciwko Ścianie Tekstu</span></div>'
+        + '<p>' + s.manifest + '</p></div>'
+      : "")
   + '<div class="kicker">' + s.kicker + '</div>'
   + '<h1>' + s.title + '</h1>'
   + '<div class="body">' + s.body.map(p => "<p>" + p + "</p>").join("") + '</div>'
