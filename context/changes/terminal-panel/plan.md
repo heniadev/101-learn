@@ -456,7 +456,7 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Manual
 
-- [ ] 1.2 Zmiany w `Dockerfile`, `run.sh`, `cleanup.sh` i `package.json` są scommitowane przed restartem
+- [x] 1.2 Zmiany w `Dockerfile`, `run.sh`, `cleanup.sh` i `package.json` są scommitowane przed restartem — e268c23
 
 ### Phase 2: Restart sesji i weryfikacja środowiska
 
@@ -467,9 +467,9 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Manual
 
-- [ ] 2.3 Sesja została zrestartowana na nowej instancji kontenera
-- [ ] 2.4 `command -v nano` oraz `command -v ttyd` zwracają ścieżki
-- [ ] 2.5 `DEVCONTAINER_PORT_MAP` jest ustawione i wskazuje port aplikacji
+- [x] 2.3 Sesja została zrestartowana na nowej instancji kontenera
+- [x] 2.4 `command -v nano` oraz `command -v ttyd` zwracają ścieżki
+- [x] 2.5 `DEVCONTAINER_PORT_MAP` jest ustawione i wskazuje port aplikacji
 
 ### Phase 3: Proces terminala
 
@@ -479,9 +479,9 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Manual
 
-- [ ] 3.2 W przeglądarce pod adresem terminala da się wpisać komendę i zobaczyć jej wynik
-- [ ] 3.3 `git status` w tym terminalu pokazuje stan tego repozytorium
-- [ ] 3.4 Plik da się otworzyć i zamknąć w `vim` oraz w `nano`
+- [x] 3.2 W przeglądarce pod adresem terminala da się wpisać komendę i zobaczyć jej wynik — 1ec27ac
+- [x] 3.3 `git status` w tym terminalu pokazuje stan tego repozytorium — 1ec27ac
+- [x] 3.4 Plik da się otworzyć i zamknąć w `vim` oraz w `nano` — 1ec27ac
 
 ### Phase 4: Prawy panel z osadzonym terminalem
 
@@ -492,7 +492,7 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Manual
 
-- [ ] 4.3 Strona pokazuje dwa panele obok siebie, a prawy wypełnia terminal
-- [ ] 4.4 Kliknięcie w prawy panel i wpisanie `git status` daje widoczny wynik
-- [ ] 4.5 Plik da się otworzyć i zamknąć w edytorze wewnątrz osadzonego terminala
-- [ ] 4.6 Ustawienie `TERMINAL_URL` kieruje panel pod wskazany adres
+- [x] 4.3 Strona pokazuje dwa panele obok siebie, a prawy wypełnia terminal — 7113f39
+- [x] 4.4 Kliknięcie w prawy panel i wpisanie `git status` daje widoczny wynik — 7113f39
+- [x] 4.5 Plik da się otworzyć i zamknąć w edytorze wewnątrz osadzonego terminala — 7113f39
+- [x] 4.6 Ustawienie `TERMINAL_URL` kieruje panel pod wskazany adres — 7113f39
