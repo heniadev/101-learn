@@ -434,6 +434,142 @@ const DONE_SNARK = [
 ];
 let snarkN = 0;
 
+/* ---------- wirtualny system plików ----------
+   `w` to numer kroku, po którym byt istnieje (-1 = od początku).
+   Dzięki temu `ls`/`cat` pokazują dokładnie to, co kurs zdążył zrobić. */
+const FS = [
+  {"p": "/workspace", "d": 1, "w": -1},
+  {"p": "/workspace/.claude", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-agents-md", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-archive", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-bootstrapper", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-e2e", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-frame", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-goal-implement", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-health-check", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-impl-review", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-impl-review-ci", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-implement", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-infra-research", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-init", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-lesson", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-mom-test", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-new", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-opportunity-map", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-pack-init", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-plan", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-plan-review", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-prd", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-research", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-roadmap", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-rule-review", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-setup-cicd", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-shape", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-stack-assess", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-tdd", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-tech-stack-selector", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-test-plan", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/101-tf-registry", "d": 1, "w": -1},
+  {"p": "/workspace/.claude/skills/DESIGN.md", "w": -1, "b": "(plik toolkitu — w mockupie nie odtwarzamy jego treści)"},
+  {"p": "/workspace/.claude/skills/HOWTO.md", "w": -1, "b": "(plik toolkitu — w mockupie nie odtwarzamy jego treści)"},
+  {"p": "/workspace/.claude/skills/LICENSE", "w": -1, "b": "(plik toolkitu — w mockupie nie odtwarzamy jego treści)"},
+  {"p": "/workspace/.claude/skills/README.md", "w": -1, "b": "(plik toolkitu — w mockupie nie odtwarzamy jego treści)"},
+  {"p": "/workspace/.claude/skills/REMEDIATION.md", "w": -1, "b": "(plik toolkitu — w mockupie nie odtwarzamy jego treści)"},
+  {"p": "/workspace/README.md", "w": -1, "b": "# interaktywny learner\n\nPusty projekt. Na razie jest tylko ten plik\ni toolkit 101 wpięty w .claude/skills/.\n"},
+  {"p": "/workspace/context", "d": 1, "w": 1},
+  {"p": "/workspace/context/changes", "d": 1, "w": 1},
+  {"p": "/workspace/context/archive", "d": 1, "w": 1},
+  {"p": "/workspace/context/foundation", "d": 1, "w": 1},
+  {"p": "/workspace/docs", "d": 1, "w": 1},
+  {"p": "/workspace/docs/reference", "d": 1, "w": 1},
+  {"p": "/workspace/context/changes/README.md", "w": 1, "b": "# changes/\n\nPraca w toku: jeden folder na zmianę,\ncontext/changes/<change-id>/.\n\nZmianę otwiera /101-new — zakłada change.md,\nplik tożsamości zmiany. W folderze zmiany leży\nwszystko, co jej dotyczy: research, plan, review.\n\nSkończoną zmianę przenosi do context/archive/\nkomenda /101-archive."},
+  {"p": "/workspace/context/archive/README.md", "w": 1, "b": "# archive/\n\nZamknięte zmiany, przeniesione tu z context/changes/\nprzez /101-archive.\n\nZ konwencji tylko do odczytu — skille 101 odmawiają\nzapisu w tym katalogu."},
+  {"p": "/workspace/context/foundation/README.md", "w": 1, "b": "# foundation/\n\nDokumenty żyjące dłużej niż jedna zmiana. Każdy projekt\nbierze te, których potrzebuje: wymagania, stack, roadmapa,\nlekcje, plan testów. Każdy ma swojego właściciela — skill,\nktóry go czyta i zapisuje.\n\nTrzy konwencje:\n\n- Edit-in-place: dokument zmienia się w miejscu, bez\n  datowanych kopii „na wszelki wypadek”.\n- Archiwum tylko przy zastąpieniu, nie przy poprawce —\n  foundation/archive/YYYY-MM-DD-<doc>.md.\n- Anty-wzorzec: dokument zakresu jednej zmiany nie należy\n  tutaj, tylko do context/changes/<change-id>/."},
+  {"p": "/workspace/docs/reference/contract-surfaces.md", "w": 1, "b": "# Contract surfaces\n\nRejestr nazw nośnych — identyfikatorów, na których stabilność\nliczy inny kod, narzędzie albo człowiek. Jeden nagłówek ##\nna powierzchnię, plus zdanie o tym, kto od niej zależy.\n\nCo tu trafia: struktury danych, trasy i endpointy, formaty\nplików i komunikatów, zdarzenia.\n\nKto czyta: /101-plan-review skanuje plan po nagłówkach z tego\npliku i podnosi rękę, gdy plan rusza zarejestrowaną powierzchnię\nbez słowa. Gdy pliku nie ma, ta kontrola po cichu odpada.\n\nWłaściciel wpisów: użytkownik. Ten plik zakłada /101-init\ni na tym jego rola się kończy.\n\n(rejestr jest pusty — dodaj pierwszą powierzchnię, gdy powstanie)"},
+  {"p": "/workspace/context/foundation/shape-notes.md", "w": 2, "b": "---\ncontext_type: greenfield\ncheckpoint:\n  phase: closing\n  phases_done: [vision, access, scope, frs, rule, framing]\n  frs_drafted: 8\n  quality_check_status: gaps-accepted\n  gray_areas_resolved:\n    dostep: bez logowania, świeża sesja na wejście\n    reset: przeładowanie strony, bez osobnego mechanizmu\n---\n\n## Vision\n\nBól    — nie ma jak zobaczyć toolkitu przed inwestycją czasu.\nOsoba  — deweloper oceniający toolkit przed instalacją.\nMoment — klik „wypróbuj” z landingu.\nKoszt  — ponad 30 minut do pierwszego efektu; większość odpada.\n\n## Business Rule\n\n„Dalej” odblokowuje się dopiero wtedy, gdy krok został\nfaktycznie wykonany w terminalu.\n\n## Non-Goals\n\n- konta i zapisywanie postępu\n- prawdziwy model w terminalu — agent zostaje riggowany\n- więcej niż jeden scenariusz kursu\n\n## Quality cross-check\n\n- [GAP: treść kursu — akapity kroków i skrypt odpowiedzi agenta]\n  blokująca. Konsekwencja: terminal działa, ale nie ma czego pokazać.\n\n## Forward: tech-stack\n\nprzeglądarka, jeden kontener na sesję, bez zapisu stanu\n\n## Forward: technical-roadmap\n\nnajpierw terminal w prawym panelu — bez niego nie ma demo\n"},
+  {"p": "/workspace/context/foundation/prd.md", "w": 3, "b": "---\nproject: \"interaktywny learner\"\nversion: 1\nstatus: draft\ncreated: 2026-08-28\ncontext_type: greenfield\nproduct_type: web-app\ntarget_scale:\n  users: small\ntimeline_budget:\n  mvp_weeks: 0\n  hard_deadline: 2026-08-28\n---\n\n## Vision & Problem Statement\n\nDeweloper, który słyszał o toolkicie 101, nie ma dziś jak zobaczyć,\njak ten toolkit faktycznie działa, zanim zainwestuje własny czas.\n\n## Success Criteria\n\n### Primary\nUczący się przechodzi trzy kroki ścieżki (/101-init, /101-shape,\n/101-prd) w przeglądarce, bez instalacji, i na końcu widzi realny\ndokument, który sam wywołał.\n\n### Secondary\nCały przebieg da się pokazać na scenie w 60 sekund.\n\n### Guardrails\nTerminal pozostaje prawdziwy — riggowany jest wyłącznie agent,\ni jest to powiedziane wprost.\n\n## Functional Requirements\n\n- FR-010: Uczący się otwiera link i trafia w pierwszy krok kursu\n  bez logowania i bez instalacji. Priority: must-have\n- FR-040: Uczący się wywołuje w terminalu agenta i dostaje\n  pre-programowaną odpowiedź przypisaną do kroku. Priority: must-have\n  > Socratic: Counter-argument considered: „jeśli nie powiedzieć\n  > wprost, że agent jest riggowany, a ktoś to wykryje, koszt jest\n  > większy niż zysk”. Resolution: riggowanie zostaje, ale przestaje\n  > być ukryte — patrz FR-045.\n- FR-050: Przycisk „Dalej” pozostaje zablokowany, dopóki aplikacja\n  nie potwierdzi, że krok został wykonany. Priority: must-have\n\n## Business Logic\n\nPrzycisk „Dalej” odblokowuje się dopiero wtedy, gdy aplikacja\npotwierdzi, że bieżący krok został faktycznie wykonany w terminalu.\nPotwierdzeniem jest obserwowalny skutek — plik, który po tym kroku\nistnieje, a wcześniej nie istniał.\n\n## Open Questions\n\n- [GAP: treść kursu] — Decide: właściciel produktu. Blocking: yes.\n- [GAP: wielu równoczesnych uczących się] — Decide: właściciel\n  produktu. Blocking: no.\n- [GAP: nazwa produktu] — Decide: właściciel produktu. Blocking: no.\n"}
+];
+
+const HOME = "/workspace";
+let cwd = HOME;
+
+function vis(e){ return e.w < 0 || done[e.w]; }
+function norm(a){
+  if (!a) return cwd;
+  if (a === "~") return HOME;
+  if (a.indexOf("~/") === 0) a = HOME + a.slice(1);
+  const raw = a.startsWith("/") ? a : cwd + "/" + a;
+  const out = [];
+  raw.split("/").forEach(seg => {
+    if (!seg || seg === ".") return;
+    if (seg === "..") out.pop(); else out.push(seg);
+  });
+  return "/" + out.join("/");
+}
+function find(path){ return FS.find(e => e.p === path && vis(e)); }
+function kids(path){
+  const pre = path + "/";
+  return FS.filter(e => vis(e) && e.p.indexOf(pre) === 0 && e.p.slice(pre.length).indexOf("/") === -1);
+}
+
+/* Zwraca tablicę [tekst, klasa] albo null, gdy komenda jest nieznana. */
+function sh(input){
+  const parts = input.split(/\s+/);
+  const cmd = parts[0];
+  const rest = parts.slice(1);
+  const flags = rest.filter(x => x.startsWith("-")).join("");
+  const arg = rest.find(x => !x.startsWith("-"));
+
+  if (cmd === "pwd") return [[cwd, ""]];
+  if (cmd === "clear"){ history = []; return []; }
+
+  if (cmd === "ls"){
+    const t = norm(arg), e = find(t);
+    if (!e) return [["ls: " + (arg || ".") + ": No such file or directory", "warn"]];
+    if (!e.d) return [[arg, ""]];
+    let list = kids(t).map(x => ({ n: x.p.slice(t.length + 1), d: x.d }));
+    if (flags.indexOf("a") < 0) list = list.filter(x => x.n[0] !== ".");
+    list.sort((a, b) => a.n.localeCompare(b.n));
+    return list.map(x => [x.n + (x.d ? "/" : ""), x.d ? "cwd" : ""]);
+  }
+
+  if (cmd === "cd"){
+    const t = norm(arg || "~"), e = find(t);
+    if (!e) return [["cd: " + arg + ": No such file or directory", "warn"]];
+    if (!e.d) return [["cd: " + arg + ": Not a directory", "warn"]];
+    cwd = t;
+    return [];
+  }
+
+  if (cmd === "cat" || cmd === "less" || cmd === "more" || cmd === "head"){
+    if (!arg) return [[cmd + ": brakuje nazwy pliku", "warn"]];
+    const t = norm(arg), e = find(t);
+    if (!e) return [[cmd + ": " + arg + ": No such file or directory", "warn"]];
+    if (e.d) return [[cmd + ": " + arg + ": Is a directory", "warn"]];
+    let lines = (e.b || "").split("\n").map(l => [l, ""]);
+    if (cmd === "head") lines = lines.slice(0, 10);
+    if (cmd === "less" || cmd === "more") lines.push(["(END) — q kończy podgląd", "ret"]);
+    return lines;
+  }
+
+  return null;
+}
+
+const HELP = [
+  ["  Ścieżka od pomysłu do planu:", "dim"],
+  ["    /101-init      szkielet context/", "dim"],
+  ["    /101-shape     rozmowa odkrywcza → shape-notes.md", "dim"],
+  ["    /101-prd       dokument wymagań → prd.md", "dim"],
+  ["    /101-roadmap   plastry pionowe → roadmap.md", "dim"],
+  ["", ""],
+  ["  Pętla jednej zmiany:", "dim"],
+  ["    /101-new · /101-plan · /101-implement · /101-impl-review · /101-archive", "dim"],
+  ["", ""],
+  ["  W tym mockupie działają trzy pierwsze. Powłoka rozumie", "dim"],
+  ["  ls, cd, cat, less, pwd i clear.", "dim"]
+];
+
 const pane   = document.getElementById("pane");
 const screen = document.getElementById("screen");
 const hint   = document.getElementById("hint");
@@ -454,7 +590,8 @@ function esc(s){ return s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&
 function ps1(step){
   return step.ps === "agent"
     ? '<span class="ps1">&gt;</span> '
-    : '<span class="ps1">learner@101</span><span class="dim">:</span><span class="cwd">/workspace</span><span class="dim">$</span> ';
+    : '<span class="ps1">learner@101</span><span class="dim">:</span><span class="cwd">'
+      + esc(cwd.replace(HOME, "~")) + '</span><span class="dim">$</span> ';
 }
 
 function promptHTML(withCursor, text){
@@ -476,6 +613,19 @@ function paint(){
 
 function push(text, cls){ history.push({ t: text, c: cls || "" }); }
 
+function emit(out, said){
+  const step = STEPS[idx];
+  if (step.ps !== "agent"){
+    out.forEach(l => push(esc(l[0]), l[1]));
+    return;
+  }
+  if (said === "/help"){ out.forEach(l => push(esc(l[0]), l[1])); push("", ""); return; }
+  push(esc("⏺ Bash(" + said + ")"), "tool");
+  if (!out.length){ push("  ⎿  (bez wyjścia)", "ret"); }
+  else out.forEach((l, i) => push("  " + (i === 0 ? "⎿  " : "   ") + esc(l[0]), l[1] || "ret"));
+  push("", "");
+}
+
 function snark(pool, said){
   const step = STEPS[idx];
   const line = pool[snarkN++ % pool.length]
@@ -491,10 +641,13 @@ function submit(){
   push(promptHTML(false, buf), "");
   const said = buf.trim();
   buf = "";
-  if (done[idx]){ snark(DONE_SNARK, said); paint(); return; }
-  if (said === step.command){ run(); return; }
   if (said === ""){ paint(); return; }
-  snark(step.ps === "agent" ? AGENT_SNARK : SHELL_SNARK, said);
+  if (!done[idx] && said === step.command){ run(); return; }
+
+  const out = said === "/help" && step.ps === "agent" ? HELP : sh(said);
+  if (out){ emit(out, said); paint(); return; }
+
+  snark(done[idx] ? DONE_SNARK : (step.ps === "agent" ? AGENT_SNARK : SHELL_SNARK), said);
   paint();
 }
 
@@ -590,7 +743,7 @@ function renderOutro(){
     + '<p>Reszta ścieżki działa tak samo. Najpierw fundamenty — <code>/101-tech-stack-selector</code>, <code>/101-roadmap</code> — a potem pętla jednej zmiany: <code>/101-new</code> → <code>/101-plan</code> → <code>/101-implement</code> → <code>/101-impl-review</code> → <code>/101-archive</code>.</p>'
   + '</div>'
   + '<div class="cta">'
-    + '<a class="primary" href="https://github.com/heniadev/101-skills">Zainstaluj toolkit</a>'
+    + '<a class="primary" href="https://github.com/heniadev/101-learn">Repozytorium 101-learn</a>'
     + '<a href="#" onclick="location.reload();return false;">Przejdź jeszcze raz</a>'
   + '</div></div>';
   count.textContent = "3 z 3 · gotowe";
