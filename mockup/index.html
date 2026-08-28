@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>101-learn — interaktywny learner (mockup)</title>
-<meta name="description" content="Mockup interaktywnego learnera toolkitu 101: kurs po lewej, terminal po prawej.">
+<meta name="description" content="Mockup interaktywnego learnera toolkitu 101: kurs po lewej, sesja agenta po prawej.">
 <style>
   :root{
     --bg:#0b0d10;
@@ -18,6 +18,7 @@
     --mint:#6ee7a8;
     --amber:#f2bd72;
     --cyan:#7cc7ff;
+    --violet:#c0b3ff;
     --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono","Menlo","Consolas",monospace;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
@@ -128,14 +129,17 @@
   .term-head .hint{margin-left:auto;font-size:11.5px;color:var(--dim)}
   .screen{
     flex:1;overflow-y:auto;padding:16px 18px 24px;cursor:text;
-    font-family:var(--mono);font-size:13.5px;line-height:1.62;color:#c9d2dc;
+    font-family:var(--mono);font-size:13px;line-height:1.6;color:#c9d2dc;
   }
-  .screen .l{white-space:pre-wrap;word-break:break-word;min-height:1.62em}
+  .screen .l{white-space:pre-wrap;word-break:break-word;min-height:1.6em}
   .agent{color:var(--cyan)}
+  .tool{color:#8fa0b3}
+  .ret{color:var(--dim)}
   .ok{color:var(--mint)}
   .warn{color:var(--amber)}
   .dim{color:var(--dim)}
-  .you{color:#c0b3ff}
+  .you{color:var(--violet)}
+  .box{color:#7f8b9a}
   .ps1{color:var(--mint)}
   .cwd{color:var(--cyan)}
   .ghost{color:#39414c}
@@ -146,12 +150,10 @@
   .screen.busy .cursor{animation:none;opacity:.35}
   @keyframes blink{50%{opacity:0}}
 
-  .outro{padding:30px 34px}
-  .outro h1{margin-bottom:14px}
   .outro .cta{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
-  .outro .cta a,.outro .cta button{
-    font:inherit;font-size:13.5px;text-decoration:none;border-radius:7px;padding:9px 17px;cursor:pointer;
-    border:1px solid var(--line);color:var(--muted);background:none;
+  .outro .cta a{
+    font-size:13.5px;text-decoration:none;border-radius:7px;padding:9px 17px;
+    border:1px solid var(--line);color:var(--muted);
   }
   .outro .cta a.primary{background:var(--mint);border-color:var(--mint);color:#07130d;font-weight:500}
 
@@ -169,7 +171,7 @@
 <header class="bar">
   <div class="mark"><i class="dot"></i>101-learn <small>· interaktywny learner</small></div>
   <div class="spacer"></div>
-  <div class="badge">⚑ <span>Agent w terminalu odtwarza pre-programowane odpowiedzi</span></div>
+  <div class="badge">⚑ <span>Sesja agenta jest odtwarzana ze skryptu</span></div>
   <button class="reset" onclick="location.reload()">Zacznij od nowa</button>
 </header>
 
@@ -186,7 +188,7 @@
   <section class="term-pane">
     <div class="term-head">
       <div class="tl"><i></i><i></i><i></i></div>
-      <div class="title">bash — /workspace</div>
+      <div class="title" id="termtitle">bash — /workspace</div>
       <div class="hint" id="hint">kliknij i uderz w dowolne klawisze</div>
     </div>
     <div class="screen" id="screen" tabindex="0"></div>
@@ -194,97 +196,208 @@
 </main>
 
 <script>
+/* Każdy krok = jedna komenda wpisana w prawym panelu + odtworzona odpowiedź.
+   Treść odpowiedzi jest zgodna z tym, co skille w .claude/skills/ naprawdę
+   robią: 101-init wypisuje siedem bytów i nie popycha następnej komendy,
+   101-shape prowadzi rozmowę i nazywa anty-wzorce po imieniu, 101-prd
+   punktuje wejście, liczy luki i robi self-review przed zapisem. */
 const STEPS = [
+  {
+    kicker: "Start · sesja agenta",
+    title: "Uruchom agenta",
+    label: "start",
+    ps: "shell",
+    body: [
+      "Toolkit 101 nie jest programem, który się odpala — to zestaw <em>skilli</em> wpiętych w agenta kodującego. Rozmawiasz z agentem, a skille wywołujesz komendą zaczynającą się od ukośnika.",
+      "Dlatego pierwszy ruch jest zawsze ten sam: uruchamiasz agenta w katalogu projektu. Wszystko, co zrobisz dalej, dzieje się w tej jednej sesji i zostaje na dysku w plikach.",
+      "Uruchom go w terminalu po prawej. Uderz w dowolne klawisze — komenda dopisze się sama."
+    ],
+    command: "claude",
+    out: [
+      ["", "", 260],
+      ["╭─────────────────────────────────────────────────────╮", "box", 40],
+      ["│ ✻ Welcome to Claude Code                            │", "box", 40],
+      ["│                                                     │", "box", 40],
+      ["│   /help — pomoc      /status — stan sesji           │", "box", 40],
+      ["│                                                     │", "box", 40],
+      ["│   cwd: /workspace                                   │", "box", 40],
+      ["╰─────────────────────────────────────────────────────╯", "box", 320],
+      ["", "", 60],
+      ["※ Tip: skille toolkitu 101 wywołujesz komendą /101-…", "dim", 200],
+      ["  W tym katalogu wpięte są 34 skille (.claude/skills/).", "dim", 60]
+    ]
+  },
   {
     kicker: "Krok 1 z 3 · fundament",
     title: "Zrób miejsce na pamięć projektu",
+    label: "1",
+    ps: "agent",
     body: [
-      "Toolkit 101 nie trzyma pamięci w rozmowie — trzyma ją w plikach. Możesz zamknąć laptopa w dowolnym momencie i wrócić jutro dokładnie tam, gdzie skończyłeś.",
-      "<code>/101-init</code> zakłada drzewo <code>context/</code>: <code>foundation/</code> na dokumenty żyjące tyle co projekt, <code>changes/</code> na pracę w toku, <code>archive/</code> na zamknięte zmiany. Nic więcej się nie dzieje — to wygoda, nie wymóg.",
-      "Wpisz komendę w terminalu po prawej. Uderz w dowolne klawisze — komenda dopisze się sama."
+      "Toolkit nie trzyma pamięci w rozmowie — trzyma ją w plikach. Możesz zamknąć laptopa w dowolnym momencie i wrócić jutro dokładnie tam, gdzie skończyłeś.",
+      "<code>/101-init</code> zakłada siedem bytów: trzy katalogi (<code>foundation/</code>, <code>changes/</code>, <code>archive/</code>), ich pliki konwencji i pusty rejestr nazw nośnych. Niczego nie nadpisuje — co już istnieje, zostaje nietknięte.",
+      "To wygoda, nie warunek. Każdy inny skill zakłada swoje pliki sam — dlatego <code>/101-init</code> na koniec niczego nie podpowiada."
     ],
     command: "/101-init",
     out: [
-      ["● Sprawdzam stan repozytorium…", "agent", 420],
+      ["", "", 200],
+      ["⏺ 101-init — szkielet kontekstu", "agent", 420],
       ["", "", 60],
-      ["● Tworzę szkielet kontekstu", "agent", 260],
-      ["", "", 40],
-      ["  context/", "", 70],
-      ["  ├── foundation/   długo żyjące dokumenty", "dim", 70],
-      ["  ├── changes/      praca w toku", "dim", 70],
-      ["  └── archive/      zamknięte zmiany", "dim", 120],
-      ["", "", 40],
-      ["  3 katalogi · 3 pliki README z konwencjami", "dim", 220],
+      ["⏺ Write(context/changes/README.md)", "tool", 150],
+      ["  ⎿  Wrote 14 lines", "ret", 120],
+      ["⏺ Write(context/archive/README.md)", "tool", 150],
+      ["  ⎿  Wrote 11 lines", "ret", 120],
+      ["⏺ Write(context/foundation/README.md)", "tool", 150],
+      ["  ⎿  Wrote 23 lines", "ret", 120],
+      ["⏺ Write(docs/reference/contract-surfaces.md)", "tool", 150],
+      ["  ⎿  Wrote 18 lines", "ret", 300],
       ["", "", 60],
-      ["✓ Kontekst gotowy.", "ok", 60],
-      ["  Następny krok: /101-shape <twój pomysł>", "dim", 60]
+      ["⏺ Stan:", "agent", 120],
+      ["    context/changes/                       utworzony", "dim", 55],
+      ["    context/archive/                       utworzony", "dim", 55],
+      ["    context/foundation/                    utworzony", "dim", 55],
+      ["    context/changes/README.md              utworzony", "dim", 55],
+      ["    context/archive/README.md              utworzony", "dim", 55],
+      ["    context/foundation/README.md           utworzony", "dim", 55],
+      ["    docs/reference/contract-surfaces.md    utworzony", "dim", 240],
+      ["", "", 60],
+      ["  changes/    — praca w toku, jeden folder na zmianę", "", 70],
+      ["  archive/    — zamknięte zmiany, z konwencji tylko do odczytu", "", 70],
+      ["  foundation/ — dokumenty żyjące dłużej niż jedna zmiana", "", 200],
+      ["", "", 60],
+      ["  To nie jest warunek konieczny — każdy skill zakłada swoje", "dim", 60],
+      ["  pliki sam. Szkielet stoi, jeśli wolisz mieć go z góry.", "dim", 60]
     ],
     file: {
       path: "context/foundation/README.md",
-      peek: "# foundation/\n\nDokumenty, które żyją tak długo jak projekt.\nshape-notes.md · prd.md · roadmap.md · tech-stack.md"
+      peek: "# foundation/\n\nDokumenty żyjące dłużej niż jedna zmiana.\n\n- Edit-in-place: dokument zmienia się w miejscu,\n  bez datowanych kopii „na wszelki wypadek”.\n- Archiwum tylko przy zastąpieniu, nie przy poprawce."
     }
   },
   {
     kicker: "Krok 2 z 3 · rozmowa",
     title: "Zamień pomysł w notatki",
+    label: "2",
+    ps: "agent",
     body: [
-      "<code>/101-shape</code> to prowadzona rozmowa, nie formularz. Skill zadaje jedno otwarte pytanie naraz i na bieżąco dopisuje <code>context/foundation/shape-notes.md</code>.",
-      "Robi przy tym trzy rzeczy, których nie robi zwykły czat: nazywa pusty pomysł po imieniu, przycina zakres, gdy pierwsza wersja robi się za duża, i atakuje każde wymaganie jednym trudnym pytaniem — „co musiałoby być prawdą, żeby to zaszkodziło produktowi?”.",
-      "Odpowiedzi poniżej są odtworzone ze skryptu. W prawdziwej sesji piszesz tam swoje."
+      "<code>/101-shape</code> to prowadzona rozmowa, nie formularz: jedno otwarte pytanie naraz, sześć faz, a po każdej odpowiedzi skill odbija decyzję jednym zdaniem do potwierdzenia i dopisuje <code>context/foundation/shape-notes.md</code>.",
+      "Ma dwie twarde zasady. Jest <em>moderatorem, nie autorem</em> — nigdy nie wpisze treści, której nie powiedziałeś. I nie zadaje pytań o technologię: co się o niej pojawi, ląduje w osobnym bloku dla kroku wyboru stacku.",
+      "Anty-wzorce nazywa po imieniu i daje wyjścia: <em>empty-CRUD</em>, gdy aplikacja nie podejmuje żadnej decyzji, <em>MVP-too-big</em>, gdy pierwsza wersja rośnie ponad budżet. Odpowiedzi poniżej są odtworzone — w prawdziwej sesji piszesz tam swoje."
     ],
     command: "/101-shape interaktywny learner w przeglądarce",
     out: [
-      ["● Czytam context/ — brak notatek, zaczynamy od zera.", "agent", 460],
+      ["", "", 200],
+      ["⏺ 101-shape — rozmowa odkrywcza", "agent", 320],
       ["", "", 60],
-      ["❯ Kto ma z tego skorzystać i co go dziś blokuje?", "", 260],
-      ["› deweloper, który słyszał o toolkicie i nie ma jak go zobaczyć", "you", 90],
-      ["  przed instalacją — droga do pierwszego efektu to ponad 30 minut", "you", 260],
+      ["⏺ Bash(git log --oneline -1)", "tool", 200],
+      ["  ⎿  fatal: your current branch 'main' does not have any commits yet", "ret", 150],
+      ["⏺ Glob(package-lock.json, *.lock)", "tool", 200],
+      ["  ⎿  0 plików", "ret", 320],
       ["", "", 60],
-      ["❯ Jaką decyzję ta aplikacja podejmuje za niego?", "", 300],
-      ["› żadnej. Pokazuje przebieg — ale musi być wierny,", "you", 90],
-      ["  inaczej uczący się poczuje się oszukany", "you", 300],
+      ["⏺ Brak historii, brak pliku blokad, brak manifestu — to nowy", "agent", 70],
+      ["  produkt, nie zmiana w istniejącym systemie. Potwierdzasz?", "agent", 480],
+      ["> tak", "you", 300],
       ["", "", 60],
-      ["⚑ Zapisuję to jako wymaganie, nie jako styl: wierność przebiegu.", "warn", 380],
+      ["⏺ Faza 1 — wizja. Jedno pytanie: kogo to boli, w którym", "agent", 70],
+      ["  momencie, i ile go to dziś kosztuje?", "agent", 520],
+      ["> deweloper, który słyszał o toolkicie i chce go zobaczyć,", "you", 90],
+      ["  zanim zainstaluje. Dziś to ponad 30 minut i większość odpada.", "you", 420],
       ["", "", 60],
-      ["✓ Dopisano shape-notes.md — Problem, Persona, Zakres, Non-goals", "ok", 60],
+      ["⏺ Rozbijam na cztery składniki i odbijam każdy osobno:", "agent", 120],
+      ["    ból     — nie ma jak zobaczyć toolkitu przed inwestycją czasu", "dim", 70],
+      ["    osoba   — deweloper oceniający toolkit przed instalacją", "dim", 70],
+      ["    moment  — klik „wypróbuj” z landingu", "dim", 70],
+      ["    koszt   — ponad 30 minut do pierwszego efektu", "dim", 380],
+      ["", "", 60],
+      ["⏺ Faza 5 — reguła biznesowa. Jedno zdanie: co ta aplikacja", "agent", 70],
+      ["  rozstrzyga za użytkownika?", "agent", 480],
+      ["> pokazuje kolejne kroki kursu", "you", 420],
+      ["", "", 60],
+      ["⚑ empty-CRUD: to jest wyświetlanie rekordów po kolei —", "warn", 70],
+      ["  aplikacja nie podejmuje żadnej decyzji. Kształty realnej", "warn", 70],
+      ["  reguły: walidacja · workflow stanu · klasyfikacja · scoring", "warn", 520],
+      ["> workflow stanu — „Dalej” odblokowuje się dopiero wtedy, gdy", "you", 90],
+      ["  krok został faktycznie wykonany w terminalu", "you", 420],
+      ["", "", 60],
+      ["⏺ Odbijam do potwierdzenia: przejście naprzód jest bramkowane", "agent", 70],
+      ["  obserwowalnym skutkiem kroku — plikiem, którego wcześniej", "agent", 70],
+      ["  nie było.", "agent", 420],
+      ["> tak", "you", 300],
+      ["", "", 60],
+      ["⏺ Write(context/foundation/shape-notes.md)", "tool", 200],
+      ["  ⎿  Wrote 96 lines", "ret", 300],
+      ["", "", 60],
+      ["⏺ Bramka jakości — miękka, możesz ją przejść mimo luk:", "agent", 120],
+      ["    wizja · persona · FR · historyjka · reguła · dostęp   ✓", "dim", 90],
+      ["⚑ [GAP: treść kursu — akapity kroków i skrypt agenta]", "warn", 90],
+      ["    blokująca. Decyduje: właściciel produktu.", "warn", 380],
+      ["> przyjmuję lukę, idziemy dalej", "you", 300],
+      ["", "", 60],
+      ["  quality_check_status: gaps-accepted", "dim", 60],
       ["  Następny krok: /101-prd", "dim", 60]
     ],
     file: {
       path: "context/foundation/shape-notes.md",
-      peek: "## Problem\nDroga do pierwszego efektu — instalacja, własny projekt,\npierwsze kroki — to ponad 30 minut. Większość odpada po drodze.\n\n## Non-goals\n— konta i zapisywanie postępu"
+      peek: "context_type: greenfield\ncheckpoint:\n  phase: closing\n  frs_drafted: 8\n  quality_check_status: gaps-accepted\n\n## Business Rule\n„Dalej” odblokowuje się dopiero wtedy, gdy krok\nzostał faktycznie wykonany w terminalu."
     }
   },
   {
     kicker: "Krok 3 z 3 · dokument",
     title: "Wygeneruj dokument wymagań",
+    label: "3",
+    ps: "agent",
     body: [
-      "<code>/101-prd</code> zamienia notatki w <code>context/foundation/prd.md</code> o stałym kształcie: wizja, persona, kryteria sukcesu, historyjki, wymagania, reguła biznesowa, kontrola dostępu, non-goals.",
-      "Dwie rzeczy są tu ważne. Skill nie zmyśla — czego nie powiedziałeś, zostaje widocznym znacznikiem <code>[GAP: …]</code> i trafia na listę otwartych pytań. I trzyma technologię poza dokumentem: wymagania mówią CO, wybór stacku mówi CZYM.",
-      "Po tym kroku na dysku leży realny dokument, który sam wywołałeś."
+      "<code>/101-prd</code> jest generatorem, nie autorem. Czyta notatki, punktuje je czterema sygnałami i przepisuje do <code>context/foundation/prd.md</code> o stałym kształcie — wizja, persona, kryteria sukcesu, historyjki, wymagania, reguła, dostęp, non-goals.",
+      "Nie zmyśla. Czego nie powiedziałeś, zostaje widocznym znacznikiem <code>[GAP: …]</code> i wpisem na liście otwartych pytań — z informacją, kto decyduje i czy to blokuje. Przed zapisem robi self-review: sprawdza kolejność sekcji i przepuszcza tekst przez lint siedmiu rodzin przecieków technicznych.",
+      "Po tym kroku na dysku leży realny dokument, który sam wywołałeś — i to jest cała teza tego kursu."
     ],
     command: "/101-prd",
     out: [
-      ["● Czytam context/foundation/shape-notes.md", "agent", 380],
-      ["● Składam dokument wymagań…", "agent", 520],
+      ["", "", 200],
+      ["⏺ 101-prd — generator dokumentu wymagań", "agent", 320],
       ["", "", 60],
-      ["  Wizja i problem             ✓", "dim", 110],
-      ["  Persona                     ✓", "dim", 110],
-      ["  Kryteria sukcesu            ✓", "dim", 110],
-      ["  Historyjki (US-01)          ✓", "dim", 110],
-      ["  Wymagania (FR-010…FR-080)   ✓", "dim", 110],
-      ["  Non-goals                   ✓", "dim", 200],
+      ["⏺ Read(.claude/skills/101-shape/references/prd-schema.md)", "tool", 200],
+      ["  ⎿  Read 214 lines", "ret", 120],
+      ["⏺ Read(context/foundation/shape-notes.md)", "tool", 200],
+      ["  ⎿  Read 96 lines", "ret", 320],
       ["", "", 60],
-      ["⚑ 3 luki — nie zgaduję, zapisuję:", "warn", 260],
-      ["    [GAP: treść kursu]                     blokująca", "warn", 90],
-      ["    [GAP: wielu równoczesnych uczących się]", "warn", 90],
-      ["    [GAP: nazwa produktu]", "warn", 240],
+      ["⏺ context_type: greenfield — z nagłówka notatek, nie pytam.", "agent", 320],
       ["", "", 60],
-      ["✓ Zapisano context/foundation/prd.md (184 linie)", "ok", 60],
+      ["⏺ Input score: 4/4", "agent", 120],
+      ["    blok checkpoint w nagłówku          ✓", "dim", 80],
+      ["    ≥1 FR w kanonicznym kształcie       ✓", "dim", 80],
+      ["    ≥1 historyjka Given/When/Then       ✓", "dim", 80],
+      ["    jednozdaniowa reguła biznesowa      ✓", "dim", 300],
+      ["", "", 60],
+      ["⏺ Składam 10 sekcji kontraktu:", "agent", 120],
+      ["    Vision & Problem Statement          przepisane", "dim", 60],
+      ["    User & Persona                      przepisane", "dim", 60],
+      ["    Success Criteria                    przepisane", "dim", 60],
+      ["    User Stories                        US-01", "dim", 60],
+      ["    Functional Requirements             FR-010…FR-080", "dim", 60],
+      ["    Business Logic                      przepisane", "dim", 60],
+      ["    Access Control                      przepisane", "dim", 60],
+      ["    Non-Goals                           przepisane", "dim", 60],
+      ["    Open Questions                      3 wpisy", "dim", 260],
+      ["", "", 60],
+      ["⏺ Self-review przed zapisem:", "agent", 120],
+      ["    struktura — 10 nagłówków, kolejność zgodna z kontraktem  ✓", "dim", 120],
+      ["    leak lint — 7 rodzin przecieków, 0 trafień               ✓", "dim", 320],
+      ["", "", 60],
+      ["⏺ Write(context/foundation/prd.md)", "tool", 220],
+      ["  ⎿  Wrote 184 lines", "ret", 320],
+      ["", "", 60],
+      ["⏺ Rozliczenie:", "agent", 120],
+      ["    sekcje przepisane w całości: 9 · z markerem [GAP: …]: 1", "dim", 80],
+      ["    Open Questions: 3 wpisy, w tym 1 blokujący", "dim", 260],
+      ["", "", 60],
+      ["  Przekierowane, nie zgubione — ## Forward: tech-stack:", "dim", 90],
+      ["    „przeglądarka, jeden kontener na sesję, bez zapisu stanu”", "dim", 300],
+      ["", "", 60],
+      ["✓ context/foundation/prd.md", "ok", 90],
       ["  Następny krok: /101-tech-stack-selector", "dim", 60]
     ],
     file: {
       path: "context/foundation/prd.md",
-      peek: "## Success Criteria\n\nUczący się przechodzi trzy kroki ścieżki (/101-init,\n/101-shape, /101-prd) w przeglądarce, bez instalacji,\ni na końcu widzi realny dokument, który sam wywołał."
+      peek: "## Success Criteria\n\n### Primary\nUczący się przechodzi trzy kroki ścieżki (/101-init,\n/101-shape, /101-prd) w przeglądarce, bez instalacji,\ni na końcu widzi realny dokument, który sam wywołał.\n\n## Open Questions\n- [GAP: treść kursu] — Decide: właściciel produktu.\n  Blocking: yes."
     }
   }
 ];
@@ -292,32 +405,36 @@ const STEPS = [
 const pane   = document.getElementById("pane");
 const screen = document.getElementById("screen");
 const hint   = document.getElementById("hint");
+const ttitle = document.getElementById("termtitle");
 const nextB  = document.getElementById("next");
 const backB  = document.getElementById("back");
 const count  = document.getElementById("count");
 
 let idx = 0;
-let typed = 0;          // ile znaków komendy jest już "wpisane"
-let busy = false;       // trwa odtwarzanie odpowiedzi
-let done = [false, false, false];
+let typed = 0;                       // ile znaków komendy jest już wpisane
+let busy = false;                    // trwa odtwarzanie odpowiedzi
+let done = STEPS.map(() => false);
 let outro = false;
-
-/* ---------- terminal ---------- */
-let history = [];       // zamknięte linie scrollbacku
+let history = [];                    // zamknięte linie scrollbacku
 
 function esc(s){ return s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
-function promptHTML(){
-  const cmd = STEPS[idx].command;
-  const hit = esc(cmd.slice(0, typed));
-  const rest = esc(cmd.slice(typed));
-  return '<span class="ps1">learner@101</span><span class="dim">:</span><span class="cwd">/workspace</span><span class="dim">$</span> '
-       + hit + '<span class="cursor"></span><span class="ghost">' + rest + '</span>';
+function ps1(step){
+  return step.ps === "agent"
+    ? '<span class="ps1">&gt;</span> '
+    : '<span class="ps1">learner@101</span><span class="dim">:</span><span class="cwd">/workspace</span><span class="dim">$</span> ';
+}
+
+function promptHTML(withCursor){
+  const s = STEPS[idx], cmd = s.command;
+  return ps1(s) + esc(cmd.slice(0, typed))
+       + (withCursor ? '<span class="cursor"></span>' : "")
+       + '<span class="ghost">' + esc(cmd.slice(typed)) + '</span>';
 }
 
 function paint(){
   const lines = history.map(h => '<div class="l ' + h.c + '">' + h.t + '</div>').join("");
-  screen.innerHTML = lines + (busy || done[idx] ? "" : '<div class="l">' + promptHTML() + '</div>');
+  screen.innerHTML = lines + (busy || done[idx] || outro ? "" : '<div class="l">' + promptHTML(true) + '</div>');
   screen.classList.toggle("busy", busy);
   screen.scrollTop = screen.scrollHeight;
 }
@@ -328,35 +445,35 @@ function run(){
   if (busy || done[idx]) return;
   const step = STEPS[idx];
   typed = step.command.length;
-  push(promptHTML().replace(/<span class="cursor"><\/span>/, "").replace(/<span class="ghost"><\/span>/, ""), "");
+  push(promptHTML(false), "");
   busy = true;
-  hint.textContent = "agent odpowiada…";
+  hint.textContent = "agent pracuje…";
   paint();
 
   let i = 0;
-  (function step_(){
+  (function tick(){
     if (i >= step.out.length){
       busy = false;
       done[idx] = true;
       hint.textContent = "krok wykonany";
+      if (idx === 0) ttitle.textContent = "claude — /workspace";
       render();
       return;
     }
     const [text, cls, delay] = step.out[i++];
     push(esc(text), cls);
     paint();
-    setTimeout(step_, delay);
+    setTimeout(tick, delay);
   })();
 }
 
 screen.addEventListener("click", () => screen.focus());
 screen.addEventListener("keydown", e => {
-  if (busy || done[idx] || outro) return;
+  if (busy || outro || done[idx]) return;
   const cmd = STEPS[idx].command;
   if (e.key === "Enter"){
     e.preventDefault();
-    if (typed >= cmd.length) run();
-    else { typed = cmd.length; paint(); }
+    if (typed >= cmd.length) run(); else { typed = cmd.length; paint(); }
     return;
   }
   if (e.key === "Backspace"){ e.preventDefault(); typed = Math.max(0, typed - 1); paint(); return; }
@@ -368,35 +485,39 @@ screen.addEventListener("keydown", e => {
   }
 });
 
-/* ---------- lesson panel ---------- */
+/* ---------- lewy panel ---------- */
+function dots(activeIdx){
+  return '<div class="steps">' + STEPS.map((_, i) =>
+    '<i class="' + (i === activeIdx ? "on" : done[i] ? "done" : "") + '"></i>').join("") + '</div>';
+}
+
 function render(){
   if (outro){ renderOutro(); return; }
   const s = STEPS[idx];
   pane.innerHTML =
-    '<div class="steps">' + STEPS.map((_, i) =>
-      '<i class="' + (i === idx ? "on" : done[i] ? "done" : "") + '"></i>').join("") + '</div>'
+    dots(idx)
   + '<div class="kicker">' + s.kicker + '</div>'
   + '<h1>' + s.title + '</h1>'
   + '<div class="body">' + s.body.map(p => "<p>" + p + "</p>").join("") + '</div>'
   + '<div class="run' + (done[idx] ? " done" : "") + '">'
-    + '<div class="cmd"><b>$</b>' + esc(s.command) + '</div>'
+    + '<div class="cmd"><b>' + (s.ps === "agent" ? "&gt;" : "$") + '</b>' + esc(s.command) + '</div>'
     + '<span class="status">✓ wykonane</span>'
     + '<button id="runb">Uruchom</button>'
   + '</div>'
-  + '<div class="file' + (done[idx] ? " show" : "") + '">'
-    + '<header>' + s.file.path + '<span>powstał po tym kroku</span></header>'
-    + '<pre>' + esc(s.file.peek) + '</pre>'
-  + '</div>';
+  + (s.file
+      ? '<div class="file' + (done[idx] ? " show" : "") + '">'
+        + '<header>' + s.file.path + '<span>powstał po tym kroku</span></header>'
+        + '<pre>' + esc(s.file.peek) + '</pre></div>'
+      : "");
 
   const rb = document.getElementById("runb");
   if (rb) rb.onclick = () => { screen.focus(); run(); };
 
-  count.textContent = "krok " + (idx + 1) + " z " + STEPS.length;
+  count.textContent = idx === 0 ? "przed startem" : "krok " + idx + " z 3";
   backB.disabled = idx === 0;
   nextB.disabled = !done[idx];
-  nextB.textContent = idx === STEPS.length - 1 ? "Zakończ" : "Dalej";
-  backB.style.display = "";
   nextB.style.display = "";
+  nextB.textContent = idx === STEPS.length - 1 ? "Zakończ" : "Dalej";
   if (!done[idx]) hint.textContent = "kliknij i uderz w dowolne klawisze";
   paint();
 }
@@ -404,12 +525,12 @@ function render(){
 function renderOutro(){
   pane.innerHTML =
     '<div class="steps">' + STEPS.map(() => '<i class="done"></i>').join("") + '</div>'
-  + '<div class="outro" style="padding:0">'
+  + '<div class="outro">'
   + '<div class="kicker">koniec ścieżki</div>'
   + '<h1>To był cały toolkit w miniaturze</h1>'
   + '<div class="body">'
-    + '<p>Trzy komendy, trzy pliki — i pamięć projektu, która przeżywa rozmowę. Reszta ścieżki działa dokładnie tak samo: każdy skill czyta pliki, zapisuje jeden plik i mówi, co dalej.</p>'
-    + '<p>Dalej czeka <code>/101-tech-stack-selector</code>, <code>/101-roadmap</code> i pętla jednej zmiany: <code>/101-new</code> → <code>/101-plan</code> → <code>/101-implement</code> → <code>/101-impl-review</code> → <code>/101-archive</code>.</p>'
+    + '<p>Jedna sesja agenta, trzy komendy, trzy pliki — i pamięć projektu, która przeżywa rozmowę. Zamknij okno, wróć jutro: skille czytają pliki, nie historię czatu.</p>'
+    + '<p>Reszta ścieżki działa tak samo. Najpierw fundamenty — <code>/101-tech-stack-selector</code>, <code>/101-roadmap</code> — a potem pętla jednej zmiany: <code>/101-new</code> → <code>/101-plan</code> → <code>/101-implement</code> → <code>/101-impl-review</code> → <code>/101-archive</code>.</p>'
   + '</div>'
   + '<div class="cta">'
     + '<a class="primary" href="https://github.com/heniadev/101-skills">Zainstaluj toolkit</a>'
@@ -418,13 +539,14 @@ function renderOutro(){
   count.textContent = "3 z 3 · gotowe";
   backB.disabled = false;
   nextB.style.display = "none";
+  paint();
 }
 
 nextB.onclick = () => {
   if (!done[idx]) return;
   if (idx === STEPS.length - 1){ outro = true; render(); return; }
   idx++; typed = 0;
-  history.push({ t: "", c: "" });
+  push("", "");
   render();
   screen.focus();
 };
