@@ -32,6 +32,17 @@ rigged agent, `git`, and ordinary editors. The demo scenario walks the
 - Assumptions that block work get written down as `[GAP: …]` and carried
   forward — never guessed silently.
 
+## Communication
+
+- **Short sentences. Point first.** No wall of text — the reader is on a
+  clock and will ask if something is unclear.
+- **Lead with the answer or the decision.** Reasoning only if asked, or if
+  it changes what the reader does next.
+- **Obvious actions: monkey language.** "Fixed X." "Port not published."
+  "Done, 3 files." Full prose is for real trade-offs only.
+- No preamble, no recap of what was just asked, no summary of a summary.
+- Options: name them, one line each. Do not narrate the ones not taken.
+
 ## Structure
 
 - `.claude/skills/` — the 101 toolkit (read-only reference; `HOWTO.md` is
