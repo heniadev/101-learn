@@ -69,7 +69,19 @@ fi
 install -d -m 755 -o root -g root "${COURSE_DIR}"
 cp -a "${TOOLKIT}" "${COURSE_DIR}/.claude"
 chown -R root:root "${COURSE_DIR}"
-chmod 755 "${COURSE_DIR}" "${COURSE_DIR}/.claude"
+
+# Modes are set explicitly and recursively, not left to whatever the source
+# tree happened to carry, for two independent reasons:
+#
+#   * the shell runs as a non-root user, so a root-owned .claude without
+#     group/other read is a toolkit the learner cannot see -- /101-init would
+#     not even exist as a skill;
+#   * the deeper `ls -la` output is in the key too. /101-shape lists
+#     .claude/skills/101-shape/ and its references/, and the recording holds
+#     `drwxr-xr-x` for directories and `-rw-r--r--` for files.
+#
+# u=rwX,go=rX gives exactly that: 755 on directories, 644 on files.
+chmod -R u=rwX,go=rX "${COURSE_DIR}"
 
 # Show what the agent's own first command will see, so a mismatch is caught
 # here rather than as a 400 on stage. Compare against the block quoted above.
@@ -78,5 +90,18 @@ ls -la "${COURSE_DIR}/"
 echo
 entries="$(find "${COURSE_DIR}" -mindepth 1 -maxdepth 1 | wc -l)"
 subdirs="$(find "${COURSE_DIR}/.claude" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+skilldirs="$(find "${COURSE_DIR}/.claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)"
+mode="$(stat -c %a "${COURSE_DIR}/.claude")"
 [ "${entries}" -eq 1 ] || echo "WARNING: expected exactly 1 entry, found ${entries}." >&2
 [ "${subdirs}" -eq 2 ] || echo "WARNING: expected .claude to hold 2 subdirectories, found ${subdirs}." >&2
+[ "${mode}" = 755 ] || echo "WARNING: .claude is mode ${mode}, the recording has 755." >&2
+# 30 skill directories is what the recorded walk saw (link count 32 on
+# .claude/skills). A different number means the toolkit moved on since the
+# recording and the deeper `ls` output -- part of the key -- will not match.
+[ "${skilldirs}" -eq 30 ] || echo "WARNING: ${skilldirs} skill directories, the recording had 30." >&2
+
+# The learner's shell is not root. Prove the toolkit is actually readable from
+# it rather than assuming the modes above were enough.
+if [ -n "${SUDO_USER:-}" ] && ! sudo -u "${SUDO_USER}" test -r "${COURSE_DIR}/.claude/skills/HOWTO.md"; then
+  echo "WARNING: ${SUDO_USER} cannot read the toolkit -- the course shell will not see the skills." >&2
+fi
