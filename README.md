@@ -1,10 +1,10 @@
 # 101-learn
 
-Interaktywny kurs w przeglądarce, w stylu Katacody. Po lewej stronie
-1–3 akapity treści i przyciski nawigacji, po prawej **prawdziwy terminal** —
-nie symulacja. Działa w nim `git`, działają zwykłe edytory, a agent
-odpowiada ze skryptu. Scenariusz demo prowadzi przez pierwsze kroki
-toolkitu 101: `/101-init` → `/101-shape` → `/101-prd`.
+Interaktywny kurs w przeglądarce. Po lewej stronie 1–3 akapity treści
+i przyciski nawigacji, po prawej **prawdziwy terminal** — nie symulacja.
+Działa w nim `git`, działają zwykłe edytory, a agent odpowiada ze skryptu.
+Scenariusz demo prowadzi przez pierwsze kroki toolkitu 101:
+`/101-init` → `/101-shape` → `/101-prd`.
 
 ## Ból: KAPŚT — Koalicja Agentów Przeciw Ścianie Tekstu
 

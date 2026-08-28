@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ca-certificates \
     curl \
+    nano \
     vim \
     iptables \
     gosu \
@@ -162,6 +163,25 @@ RUN AGE_VERSION="v1.3.1" \
     && rm -rf /tmp/age.tar.gz /tmp/age.sha256 /tmp/age \
     && chmod +x /usr/local/bin/age /usr/local/bin/age-keygen
 
+# ttyd: the web terminal the course page embeds -- the app serves a real shell
+# in the browser, so this binary has to be present for the lesson to work at
+# all. Baked in at build time for the same reason as the Playwright libs below:
+# the runtime user is non-root and sudo-less, so it can never install this
+# later. It also keeps the demo entirely offline -- nothing is fetched from the
+# network when the container runs. Pinned version + hardcoded per-arch sha256
+# (computed directly from the downloaded release assets -- upstream doesn't
+# publish a checksums file), droast/kubeconform-style.
+RUN TTYD_VERSION="1.7.7" \
+    && case "$(dpkg --print-architecture)" in \
+         amd64) TTYD_ARCH="x86_64"; TTYD_SHA="8a217c968aba172e0dbf3f34447218dc015bc4d5e59bf51db2f2cd12b7be4f55" ;; \
+         arm64) TTYD_ARCH="aarch64"; TTYD_SHA="b38acadd89d1d396a0f5649aa52c539edbad07f4bc7348b27b4f4b7219dd4165" ;; \
+         *) echo "unsupported architecture for ttyd: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+       esac \
+    && curl -fsSLo /usr/local/bin/ttyd \
+    "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${TTYD_ARCH}" \
+    && echo "${TTYD_SHA}  /usr/local/bin/ttyd" | sha256sum -c - \
+    && chmod +x /usr/local/bin/ttyd
+
 # ksops: Kustomize exec plugin that decrypts SOPS-encrypted resources at
 # `kustomize build` time (see
 # deploy/argocd/cluster-prereqs/repo-server-ksops-patch.yaml for the
@@ -284,6 +304,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # arbitrary target UID gosu drops into at runtime, not just a UID baked in
 # at build time.
 RUN mkdir -p /home/agent /home/agent/.kube && chmod 0777 /home/agent /home/agent/.kube
+# Same story one directory over: a named volume is mounted at
+# /workspace/node_modules at runtime, and the container drops to an arbitrary
+# host UID via gosu, so there is no build-time owner to chown to -- 0777 is the
+# only permission that works for every UID, exactly as for /home/agent above.
+RUN mkdir -p /workspace/node_modules && chmod 0777 /workspace/node_modules
 ENV HOME=/home/agent
 # pre-commit caches fetched hook repos here. Kept under the persisted
 # /home/agent named volume so the cache survives container restarts — only a

@@ -75,6 +75,19 @@ else
   HOME_VOLUME="101-learn-devcontainer-home"
 fi
 
+# node_modules lives in its own named volume rather than in the bind-mounted
+# repo: the workspace mount is network-backed, and symlinks under
+# node_modules/.bin are unreadable there ("Operation not permitted"), which
+# breaks every `npm run *`. A local volume has no such restriction. Derived
+# by the same per-instance pattern as HOME_VOLUME above so the two read as
+# siblings — each named instance gets its own dependency tree, and the
+# legacy/bare path keeps a literal volume name.
+if [ -n "$INSTANCE_NAME" ]; then
+  NODE_MODULES_VOLUME="101-learn-devcontainer-node-modules-${INSTANCE_NAME}"
+else
+  NODE_MODULES_VOLUME="101-learn-devcontainer-node-modules"
+fi
+
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 
@@ -153,6 +166,15 @@ RUN_ARGS=(
   -e "DATABASE_URL=postgresql://app:app@postgres:5432/${DATABASE_NAME}"
   -v "${REPO_ROOT}:/workspace"
   -v "${HOME_VOLUME}:/home/agent"
+  # Mounted *over* /workspace inside the bind-mounted repo, so the checkout's
+  # own node_modules (if any) is shadowed — hidden while the container runs,
+  # not deleted, and back untouched on the host afterwards. A fresh volume
+  # starts EMPTY, so dependencies have to be installed once (`npm install`)
+  # after an instance's first start. The image pre-creates /workspace/node_modules
+  # with mode 0777, and Docker seeds a new volume from that mount point's
+  # image content — so the empty volume inherits world-writable permissions
+  # and stays writable for whatever arbitrary UID the entrypoint runs as.
+  -v "${NODE_MODULES_VOLUME}:/workspace/node_modules"
   -w /workspace
 )
 

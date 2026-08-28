@@ -85,6 +85,20 @@ remove_instance() {
     echo "No volume '${volume}' to remove." >&2
   fi
 
+  # The instance's node_modules volume (see run.sh's NODE_MODULES_VOLUME) —
+  # same lifecycle as the $HOME volume above, so it goes the same way.
+  # Deliberately only the per-instance one: the bare instance's
+  # '101-learn-devcontainer-node-modules' is never registered here and this
+  # script never touches it (see the header comment), so removing that one
+  # is a manual `docker volume rm 101-learn-devcontainer-node-modules`.
+  local node_modules_volume="101-learn-devcontainer-node-modules-${name}"
+  if docker volume inspect "$node_modules_volume" >/dev/null 2>&1; then
+    docker volume rm "$node_modules_volume" >&2
+    echo "Removed volume '${node_modules_volume}'." >&2
+  else
+    echo "No volume '${node_modules_volume}' to remove." >&2
+  fi
+
   local postgres_id
   postgres_id="$(docker compose -f "$COMPOSE_FILE" ps -q postgres 2>/dev/null || true)"
   if [ -n "$postgres_id" ]; then
