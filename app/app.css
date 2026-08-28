@@ -1,15 +1,84 @@
 @import "tailwindcss";
 
+/* Design tokens — one deliberate dark look, the same palette the published
+   mockup uses (mockup/index.html). Anything visual should reach for a token
+   here rather than a raw hex value. */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    serif;
+  --font-mono: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo,
+    Consolas, monospace;
+
+  --color-canvas: #0b0d10;
+  --color-panel: #101317;
+  --color-panel2: #151920;
+  --color-term: #08090b;
+  --color-line: #1e242c;
+  --color-ink: #e7eaef;
+  --color-body: #cdd5df;
+  --color-muted: #93a0b0;
+  --color-dim: #6b7787;
+  --color-mint: #6ee7a8;
+  --color-amber: #f2bd72;
+  --color-cyan: #7cc7ff;
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  height: 100%;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+body {
+  @apply bg-canvas font-sans text-ink;
+  color-scheme: dark;
+  margin: 0;
+}
+
+@layer components {
+  /* Lesson prose is serif against the terminal's mono, so the two panels read
+     as different kinds of thing at a glance. */
+  .lesson-prose {
+    @apply font-serif text-[16.5px] leading-[1.68] text-body;
+  }
+  .lesson-prose p + p {
+    @apply mt-3.5;
+  }
+  .lesson-prose code {
+    @apply rounded bg-mint/10 px-[5px] py-px font-mono text-[13.5px] text-mint;
+  }
+  .lesson-prose em {
+    @apply font-semibold text-ink not-italic;
+  }
+
+  .kicker {
+    @apply text-[11.5px] uppercase tracking-[0.13em] text-dim;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-[7px] rounded-full border px-[11px] py-[5px] text-[12.5px];
+  }
+  .pill-warn {
+    @apply border-amber/25 bg-amber/10 text-amber;
+  }
+  .pill-quiet {
+    @apply cursor-pointer border-line bg-transparent text-muted no-underline transition-colors hover:border-[#2c343f] hover:text-ink;
+  }
+
+  .btn {
+    @apply cursor-pointer rounded-[7px] border border-line bg-transparent px-4 py-2 text-[13.5px] text-muted transition-colors;
+  }
+  .btn:hover:not(:disabled) {
+    @apply border-[#2c343f] text-ink;
+  }
+  .btn:disabled {
+    @apply cursor-not-allowed opacity-35;
+  }
+  .btn-primary {
+    @apply border-mint bg-mint font-medium text-[#07130d];
+  }
+  .btn-primary:hover:not(:disabled) {
+    @apply border-[#8af0bb] bg-[#8af0bb];
   }
 }
