@@ -20,7 +20,7 @@ prawdziwej aplikacji: można w nim wpisać cokolwiek, działają `ls`, `cd`,
 krok je utworzy. Odpowiedzi agenta odpowiadają temu, co skille w
 `.claude/skills/` naprawdę robią.
 
-## Ból: KAPŚT — Koalicja Agentów Przeciw Ścianie Tekstu
+## Ból: KAPŚT — Koalicja Agentów Przeciwko Ścianom Tekstu
 
 Nauka pracy z agentami rozbija się o dokumentację. Ściana tekstu opisuje,
 co narzędzie *robi*, a człowiek i tak nie wie, co *wpisać*. Czyta akapit
