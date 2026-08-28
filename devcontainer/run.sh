@@ -36,15 +36,15 @@ else
   REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 fi
 
-# Concurrent-instance support (Gitea issue #10) is strictly opt-in — a bare
-# invocation with DEVCONTAINER_INSTANCE unset must behave exactly as it did
-# before this existed (see issue #10, comment #54): literal resource names,
-# no registry entry, no extra ceremony. Setting DEVCONTAINER_INSTANCE=<name>
-# opts into a distinct, independently addressable instance instead (its own
-# port/database/$HOME volume — see later phases), registered here so
-# devcontainer/cleanup.sh can list/remove it later. The registry lives under
-# the shared REPO_ROOT resolved above, not $SCRIPT_DIR, so it's the same
-# location regardless of which worktree's copy of this script is invoked.
+# Concurrent-instance support is strictly opt-in — a bare invocation with
+# DEVCONTAINER_INSTANCE unset must behave exactly as it did before this
+# existed: literal resource names, no registry entry, no extra ceremony.
+# Setting DEVCONTAINER_INSTANCE=<name> opts into a distinct, independently
+# addressable instance instead (its own port/database/$HOME volume),
+# registered here so devcontainer/cleanup.sh can list/remove it later. The
+# registry lives under the shared REPO_ROOT resolved above, not $SCRIPT_DIR,
+# so it's the same location regardless of which worktree's copy of this
+# script is invoked.
 INSTANCE_NAME="${DEVCONTAINER_INSTANCE:-}"
 if [ -n "$INSTANCE_NAME" ]; then
   # Reused as a Docker volume name, a `docker run --name`, and a
@@ -141,15 +141,13 @@ fi
 # The devcontainer's own outbound firewall (entrypoint.sh) blocks *new*
 # connections to RFC1918 address space by default — which includes this
 # sidecar's IP, since it lives on the same user-defined bridge network as
-# the devcontainer. Punch a narrow /32 exception for it, the same mechanism
-# already used for the k3s API server below (see ALLOWED_HOSTS_LIST).
-# Resolved fresh every run rather than hardcoded, since compose can
-# reassign the container's IP on recreation (e.g. after `down -v`).
+# the devcontainer. Punch a narrow /32 exception for it (see ALLOWED_HOSTS_LIST,
+# consumed by entrypoint.sh). Resolved fresh every run rather than hardcoded,
+# since compose can reassign the container's IP on recreation (e.g. after
+# `down -v`).
 POSTGRES_CONTAINER_ID="$(docker compose -f "$COMPOSE_FILE" ps -q postgres)"
 POSTGRES_IP="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${NETWORK_NAME}\").IPAddress}}" "$POSTGRES_CONTAINER_ID")"
 ALLOWED_HOSTS_LIST=("${POSTGRES_IP}:5432")
-ALLOWED_HOSTS_LIST+=("88.99.160.8:22")
-ALLOWED_HOSTS_LIST+=("88.99.160.8:6443")
 
 RUN_ARGS=(
   --rm -it
@@ -179,9 +177,8 @@ RUN_ARGS=(
 )
 
 # Named instances get an explicit container name (this is also what makes
-# the name known *before* `docker run`, needed for the -v/-e args above —
-# see Critical Implementation Details in the plan). The legacy/bare path
-# passes no --name at all, identical to today (Docker auto-assigns one;
+# the name known *before* `docker run`, needed for the -v/-e args above).
+# The legacy/bare path passes no --name at all (Docker auto-assigns one;
 # irrelevant since --rm removes the container on exit).
 if [ -n "$INSTANCE_NAME" ]; then
   RUN_ARGS+=(--name "101-learn-devcontainer-${INSTANCE_NAME}")
@@ -239,98 +236,68 @@ else
   echo "(that session persists in the '${HOME_VOLUME}' volume for next time)." >&2
 fi
 
-# Git credentials for working with the repo's remote from inside the
-# container (a dedicated account, not the host user's own SSH keys/tokens).
-# Sourced from devcontainer/creds.yaml (gitignored, never baked into the
-# image — only passed as env vars at `docker run` time). Simple line-based
-# parsing on purpose: the schema is fixed and flat (git.remote/username/password).
+# Git credentials for pushing from inside the container, sourced from
+# devcontainer/creds.yaml (gitignored, never baked into the image — passed as
+# env vars at `docker run` time only). Re-read on every start on purpose: the
+# credential store lives on the $HOME volume and would otherwise keep serving
+# a rotated-out token forever. Flat line-based parsing, because the schema is
+# fixed and flat.
 CREDS_FILE="$SCRIPT_DIR/creds.yaml"
+GIT_REMOTE=""
+GIT_USERNAME=""
+GIT_PASSWORD=""
+AUTHOR_NAME=""
+AUTHOR_EMAIL=""
 if [ -f "$CREDS_FILE" ]; then
   GIT_REMOTE="$(sed -n 's/^[[:space:]]*remote:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
   GIT_USERNAME="$(sed -n 's/^[[:space:]]*username:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
   GIT_PASSWORD="$(sed -n 's/^[[:space:]]*password:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
-
-  if [ -n "$GIT_REMOTE" ] && [ -n "$GIT_USERNAME" ] && [ -n "$GIT_PASSWORD" ]; then
-    RUN_ARGS+=(
-      -e "GIT_REMOTE=${GIT_REMOTE}"
-      -e "GIT_USERNAME=${GIT_USERNAME}"
-      -e "GIT_PASSWORD=${GIT_PASSWORD}"
-    )
-    echo "Git credentials loaded from creds.yaml for ${GIT_REMOTE} (user: ${GIT_USERNAME})." >&2
-  else
-    echo "creds.yaml found but missing remote/username/password — skipping git credential setup." >&2
-  fi
-
-  # Commit authorship, separate from the push account above. The agent pushes
-  # as a bot; it must not *author* commits as one, because Signed-off-by is a
-  # DCO statement only a person can make. Same flat line-based parsing —
-  # `fullname:`/`email:` are unique keys in the file.
   AUTHOR_NAME="$(sed -n 's/^[[:space:]]*fullname:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
   AUTHOR_EMAIL="$(sed -n 's/^[[:space:]]*email:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
-
-  if [ -n "$AUTHOR_NAME" ] && [ -n "$AUTHOR_EMAIL" ]; then
-    RUN_ARGS+=(
-      -e "AUTHOR_NAME=${AUTHOR_NAME}"
-      -e "AUTHOR_EMAIL=${AUTHOR_EMAIL}"
-    )
-    echo "Commit author from creds.yaml: ${AUTHOR_NAME} <${AUTHOR_EMAIL}> (agent credited via Co-authored-by)." >&2
-  else
-    echo "creds.yaml has no author: block — the agent will author and sign off commits as a bot." >&2
-    echo "See devcontainer/README.md 'Commit identity'." >&2
-  fi
-
-  # External research MCP servers (see devcontainer/README.md "External
-  # research MCP"). Both are optional and independent of each other — each
-  # service works anonymously/rate-limited without a key. .mcp.json (repo
-  # root) references these by name via Claude Code's ${VAR} expansion, so
-  # nothing here ever touches a config file with the key inline.
-  EXA_API_KEY="$(sed -n 's/^[[:space:]]*exa_api_key:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
-  CONTEXT7_API_KEY="$(sed -n 's/^[[:space:]]*context7_api_key:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
-
-  if [ -n "$EXA_API_KEY" ]; then
-    RUN_ARGS+=(-e "EXA_API_KEY=${EXA_API_KEY}")
-    echo "Exa API key loaded from creds.yaml." >&2
-  fi
-  if [ -n "$CONTEXT7_API_KEY" ]; then
-    RUN_ARGS+=(-e "CONTEXT7_API_KEY=${CONTEXT7_API_KEY}")
-    echo "Context7 API key loaded from creds.yaml." >&2
-  fi
-
-  # Sentry MCP server (see devcontainer/README.md "Sentry MCP"), for
-  # diagnostic-workflow lookups (search_issues / get_sentry_resource)
-  # against this project's Sentry org. Unlike Exa/Context7 there's no
-  # anonymous fallback tier — without a token the server starts but every
-  # tool call fails auth, same "absent means unauthenticated, everything
-  # else still works" shape as the git credentials above.
-  SENTRY_ACCESS_TOKEN="$(sed -n 's/^[[:space:]]*sentry_access_token:[[:space:]]*//p' "$CREDS_FILE" | head -n1)"
-  if [ -n "$SENTRY_ACCESS_TOKEN" ]; then
-    RUN_ARGS+=(-e "SENTRY_ACCESS_TOKEN=${SENTRY_ACCESS_TOKEN}")
-    echo "Sentry access token loaded from creds.yaml." >&2
-  fi
 fi
 
-# Read-only Kubernetes access, if devcontainer/kubeconfig.yaml exists (see
-# devcontainer/k8s/generate-kubeconfig.sh — generated from your real
-# cluster, gitignored, never baked into the image). Mounted read-only at
-# $HOME/.kube/config. Its `server:` host:port is also punched through the
-# firewall as a narrow exception (see entrypoint.sh's ALLOWED_HOSTS) since
-# it's typically a private-range address the agent otherwise couldn't reach.
-KUBECONFIG_FILE="$SCRIPT_DIR/kubeconfig.yaml"
-if [ -f "$KUBECONFIG_FILE" ]; then
-  K8S_SERVER="$(sed -n 's/^[[:space:]]*server:[[:space:]]*//p' "$KUBECONFIG_FILE" | head -n1)"
-  K8S_HOSTPORT="${K8S_SERVER#*://}"
-  K8S_HOSTPORT="${K8S_HOSTPORT%%/*}"
-
+if [ -n "$GIT_REMOTE" ] && [ -n "$GIT_USERNAME" ] && [ -n "$GIT_PASSWORD" ]; then
   RUN_ARGS+=(
-    -v "${KUBECONFIG_FILE}:/home/agent/.kube/config:ro"
+    -e "GIT_REMOTE=${GIT_REMOTE}"
+    -e "GIT_USERNAME=${GIT_USERNAME}"
+    -e "GIT_PASSWORD=${GIT_PASSWORD}"
   )
-  ALLOWED_HOSTS_LIST+=("$K8S_HOSTPORT")
-  echo "Read-only Kubernetes access loaded from kubeconfig.yaml (${K8S_SERVER})." >&2
+  echo "Git credentials loaded from creds.yaml for ${GIT_REMOTE} (user: ${GIT_USERNAME})." >&2
+elif [ -f "$CREDS_FILE" ]; then
+  echo "creds.yaml found but missing git remote/username/password — pushing" >&2
+  echo "from inside the container will not work." >&2
+else
+  echo "No devcontainer/creds.yaml — pushing from inside the container will" >&2
+  echo "not work (everything else does). See devcontainer/README.md." >&2
 fi
 
-# Consolidated firewall exception list (see ALLOWED_HOSTS_LIST above) —
-# always includes the Postgres sidecar, plus the k3s API server when
-# kubeconfig.yaml is present. Space-separated, matching entrypoint.sh's
+# Commit identity: creds.yaml's author block when present, otherwise the host's
+# own git config. The container gets a fresh $HOME volume with no identity of
+# its own, so without one of the two every `git commit` inside it fails with
+# "Please tell me who you are". The author is deliberately separate from the
+# account above — the push account may be a bot, the author never is.
+if [ -z "$AUTHOR_NAME" ] || [ -z "$AUTHOR_EMAIL" ]; then
+  AUTHOR_NAME="$(git config --get user.name 2>/dev/null || true)"
+  AUTHOR_EMAIL="$(git config --get user.email 2>/dev/null || true)"
+  IDENTITY_SOURCE="host git config"
+else
+  IDENTITY_SOURCE="creds.yaml"
+fi
+if [ -n "$AUTHOR_NAME" ] && [ -n "$AUTHOR_EMAIL" ]; then
+  RUN_ARGS+=(
+    -e "AUTHOR_NAME=${AUTHOR_NAME}"
+    -e "AUTHOR_EMAIL=${AUTHOR_EMAIL}"
+  )
+  echo "Commit identity from ${IDENTITY_SOURCE}: ${AUTHOR_NAME} <${AUTHOR_EMAIL}>." >&2
+else
+  echo "Warning: no commit identity in creds.yaml or the host's git config —" >&2
+  echo "commits inside the container will fail until you set one:" >&2
+  echo "  git config --global user.name 'Your Name'" >&2
+  echo "  git config --global user.email 'you@example.com'" >&2
+fi
+
+# Firewall exception list (see ALLOWED_HOSTS_LIST above) — currently just the
+# Postgres sidecar. Space-separated, matching entrypoint.sh's
 # `for entry in ${ALLOWED_HOSTS:-}` word-splitting parse.
 RUN_ARGS+=(-e "ALLOWED_HOSTS=${ALLOWED_HOSTS_LIST[*]}")
 

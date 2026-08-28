@@ -49,7 +49,7 @@ rigged agent, `git`, and ordinary editors. The demo scenario walks the
   the map).
 - `context/foundation/` — long-lived docs (shape-notes, PRD, roadmap).
 - `context/changes/<id>/` — work in progress; archived when done.
-- `devcontainer/` — Docker/k8s harness the demo runs inside.
+- `devcontainer/` — Docker harness the demo runs inside.
 
 ## Refresh
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # List or remove named devcontainer instances (see devcontainer/run.sh's
-# DEVCONTAINER_INSTANCE opt-in, Gitea issue #10). The legacy/bare instance
-# is never registered here and this script never touches it.
+# DEVCONTAINER_INSTANCE opt-in). The legacy/bare instance is never
+# registered here and this script never touches it.
 #
 # Usage:
 #   devcontainer/cleanup.sh                 # list registered instances

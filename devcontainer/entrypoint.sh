@@ -27,11 +27,10 @@ iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 # Explicit, narrow exceptions for specific private-range hosts actually
-# needed (e.g. a k3s API server) — set via ALLOWED_HOSTS (run.sh derives
-# this from kubeconfig.yaml when present). Format: space-separated "ip" or
-# "ip:port" entries. These punch a hole for exactly the named host (and
-# port, if given), not the surrounding range — everything else in that
-# range stays blocked.
+# needed (currently just the local Postgres sidecar) — set via ALLOWED_HOSTS,
+# which run.sh fills in. Format: space-separated "ip" or "ip:port" entries.
+# These punch a hole for exactly the named host (and port, if given), not the
+# surrounding range — everything else in that range stays blocked.
 for entry in ${ALLOWED_HOSTS:-}; do
   host="${entry%%:*}"
   if [[ "$entry" == *:* ]]; then
