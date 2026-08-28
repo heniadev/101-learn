@@ -60,20 +60,31 @@ free, new ones record themselves as you hit them.
 
 ## How a request is matched
 
-By the model and **the last user message**, normalised (trimmed, whitespace
-collapsed, lowercased) and hashed.
+By the model and **the whole conversation** — every message flattened to text
+(tool calls and tool results included), normalised and hashed.
 
-Keying on the whole conversation would miss on every replay: Claude Code
-threads its own ids, timestamps and tool results through the history, so two
-turns that look identical to a human never hash the same. The last user
-message is the part the learner actually controls, which is what makes the
-demo path reproducible.
+Keying on the last user message alone was tried first and does not work: an
+agent turn that follows a tool call carries no text block at all, so every one
+of those collapsed into a single "empty" key, one recorded answer came back for
+all of them, and the agent looped on it. What distinguishes those turns is the
+tool results above them, so the key has to span the history.
 
-The consequence worth knowing: **the same prompt always gets the same answer,
-regardless of what came before it.** For a scripted three-step path that is
-exactly right. For free exploration it is not — a learner who wanders off the
-script gets an answer from the wrong context, or a 409. That is the trade this
-design makes deliberately.
+That only works because the normaliser removes everything the client mints per
+run before hashing: `<system-reminder>` blocks (which carry the date, the
+session id and the project's CLAUDE.md), tool-use / message / request /
+session ids, uuids, long hex strings, dates and times. What is left is the
+part the learner and the repository actually determine.
+
+Two consequences worth knowing, both load-bearing for the demo:
+
+- **The whole path is one key chain.** Diverge once — a different sentence, a
+  different option in a chooser — and every later turn misses too, because the
+  divergence stays in the history. A learner cannot wander off the script and
+  wander back.
+- **Anything not normalised away is part of the key**, including absolute
+  paths, file owners, modes and link counts that appear inside tool results.
+  This is why the course terminal must start in the same directory the
+  recording was made in; see `scripts/provision-course.sh`.
 
 ## Environment
 
