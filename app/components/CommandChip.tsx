@@ -1,11 +1,15 @@
 import { useState } from "react";
+import { pasteIntoTerminal } from "~/lib/terminal-input";
 
 /**
  * The step's command, ready to run in the panel on the right.
  *
- * There is no "run it for me" button on purpose: the terminal is real, and
- * the learner running the command themselves is the whole point (FR-030).
- * Copying it is the one shortcut that does not take that away.
+ * The button puts the command into the terminal but does NOT submit it -- no
+ * Enter is sent. Running it stays the learner's move, which is the whole point
+ * of the panel being a real shell (FR-030); what we remove is only the
+ * retyping. When the terminal cannot be reached (TERMINAL_URL pointing at
+ * another origin) it falls back to the clipboard, so the button always does
+ * something.
  */
 export function CommandChip({
   command,
@@ -14,14 +18,27 @@ export function CommandChip({
   command: string;
   done?: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<"inserted" | "copied" | null>(null);
 
-  const copy = () => {
-    navigator.clipboard?.writeText(command).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    });
+  const flash = (what: "inserted" | "copied") => {
+    setFeedback(what);
+    setTimeout(() => setFeedback(null), 1600);
   };
+
+  const insert = () => {
+    if (pasteIntoTerminal(command)) {
+      flash("inserted");
+      return;
+    }
+    navigator.clipboard?.writeText(command).then(() => flash("copied"));
+  };
+
+  const label =
+    feedback === "inserted"
+      ? "wstawione"
+      : feedback === "copied"
+        ? "skopiowane"
+        : "Wstaw";
 
   return (
     <div
@@ -41,10 +58,10 @@ export function CommandChip({
       ) : (
         <button
           type="button"
-          onClick={copy}
+          onClick={insert}
           className="btn px-3 py-1.5 text-[12.5px]"
         >
-          {copied ? "skopiowane" : "Kopiuj"}
+          {label}
         </button>
       )}
     </div>

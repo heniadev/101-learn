@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Chrome around the terminal. The frame is decoration; everything inside it is
@@ -20,6 +20,7 @@ const DEFAULT_STEP = STEPS.indexOf(1);
 const STORE_KEY = "101-learn:terminal-zoom";
 
 export function TerminalPane({ src }: { src: string }) {
+  const frame = useRef<HTMLIFrameElement>(null);
   const [step, setStep] = useState(DEFAULT_STEP);
   const [ready, setReady] = useState(false);
 
@@ -46,9 +47,45 @@ export function TerminalPane({ src }: { src: string }) {
 
   const zoom = STEPS[step];
 
+  // ttyd refits xterm on `window.resize` *inside* the frame. A frame resized by
+  // our own layout or by the zoom controls above never fires that, so the
+  // terminal keeps whatever size it measured on first paint -- before the
+  // layout settled, that is xterm's 80x25 fallback, and every program
+  // inheriting COLUMNS/LINES (ls, vim, claude) renders into a box far smaller
+  // than the panel. Nudge it ourselves on load and on every later resize; the
+  // frame is same-origin because /terminal is proxied under the app's origin.
+  useEffect(() => {
+    const el = frame.current;
+    if (!el) return;
+
+    const refit = () => {
+      try {
+        el.contentWindow?.dispatchEvent(new Event("resize"));
+      } catch {
+        // TERMINAL_URL can point at another origin, and then the frame's
+        // window is off limits. Nothing to do -- ttyd fits itself there.
+      }
+    };
+
+    el.addEventListener("load", refit);
+    const observer = new ResizeObserver(refit);
+    observer.observe(el);
+    // Zoom changes the frame's box, so the observer covers it -- but it can
+    // fire before the browser has applied the new `zoom`, and xterm would then
+    // measure the old geometry. One more pass on the next frame.
+    const queued = requestAnimationFrame(refit);
+    return () => {
+      cancelAnimationFrame(queued);
+      el.removeEventListener("load", refit);
+      observer.disconnect();
+    };
+  }, [zoom]);
+
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-term">
-      <div className="flex h-[38px] flex-none items-center gap-2 border-b border-line bg-[#0c0e11] px-3.5">
+    // Grid, not flex: the iframe row needs a height the browser can resolve on
+    // the first pass, or xterm measures an unsettled box and sticks with it.
+    <section className="grid min-h-0 min-w-0 flex-1 grid-rows-[38px_minmax(0,1fr)] bg-term">
+      <div className="flex items-center gap-2 border-b border-line bg-[#0c0e11] px-3.5">
         <div className="mr-2 flex gap-1.5">
           <i className="h-2.5 w-2.5 rounded-full bg-[#2a313b]" />
           <i className="h-2.5 w-2.5 rounded-full bg-[#2a313b]" />
@@ -89,8 +126,10 @@ export function TerminalPane({ src }: { src: string }) {
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 overflow-hidden">
         <iframe
+          ref={frame}
+          data-terminal=""
           src={src}
           title="Terminal kursu"
           onLoad={() => setReady(true)}
