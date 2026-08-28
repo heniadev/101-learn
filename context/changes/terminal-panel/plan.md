@@ -251,7 +251,7 @@ Brak zmian w plikach. Kroki operatora:
 #### Automated Verification:
 
 - `npm run typecheck` kończy się kodem 0
-- `npm run dev` odpowiada kodem 200: `curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/`
+- `npm run dev` odpowiada kodem 200: `curl -s -o /dev/null -w '%{http_code}' "http://localhost:${DEVCONTAINER_PORT_MAP%%:*}/"`
 
 #### Manual Verification:
 
@@ -375,7 +375,7 @@ importuje.
 #### Automated Verification:
 
 - `npm run typecheck` kończy się kodem 0
-- Odpowiedź strony głównej zawiera `iframe` z adresem terminala: `curl -s http://localhost:5173/ | grep -q '<iframe'`
+- Odpowiedź strony głównej zawiera `iframe` z adresem terminala: `curl -s "http://localhost:${DEVCONTAINER_PORT_MAP%%:*}/" | grep -q '<iframe'`
 
 #### Manual Verification:
 
