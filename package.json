@@ -6,6 +6,7 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
+    "terminal": "bash scripts/start-terminal.sh",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
