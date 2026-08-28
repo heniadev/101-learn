@@ -1,0 +1,14 @@
+.DS_Store
+.env
+/node_modules/
+
+# React Router
+/.react-router/
+/build/
+
+# sekrety — nigdy nie commitować
+devcontainer/creds.yaml
+devcontainer/kubeconfig.yaml
+
+# toolkit 101 mieszka w osobnym repo
+.claude/
