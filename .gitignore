@@ -11,3 +11,4 @@ devcontainer/creds.yaml
 
 # toolkit 101 mieszka w osobnym repo
 .claude/
+/scripts/mock-llm/misses/
