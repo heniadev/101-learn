@@ -210,18 +210,24 @@ find_free_host_port() {
 # a `-p host:container` mapping from its own network namespace — can still
 # answer "which host port am I actually reachable on" by reading one env var,
 # in either mode.
+#
+# Published on 127.0.0.1 only, never on all host interfaces. The app proxies
+# /terminal to ttyd (vite.config.ts), and ttyd runs in writable mode -- so a
+# port bound to 0.0.0.0 hands an unauthenticated shell, in a container holding
+# git credentials and API keys, to anything that can reach this machine.
+# Binding the loopback keeps the host browser working and nothing else.
 PORT_MAP=""
 
 if [ -n "$INSTANCE_NAME" ]; then
   for container_port in ${DEVCONTAINER_PORTS:-5173}; do
     host_port="$(find_free_host_port "$container_port")"
-    RUN_ARGS+=(-p "${host_port}:${container_port}")
+    RUN_ARGS+=(-p "127.0.0.1:${host_port}:${container_port}")
     echo "Publishing container port ${container_port} on host port ${host_port}." >&2
     PORT_MAP="${PORT_MAP}${PORT_MAP:+ }${container_port}:${host_port}"
   done
 else
   for port in ${DEVCONTAINER_PORTS:-5173}; do
-    RUN_ARGS+=(-p "${port}:${port}")
+    RUN_ARGS+=(-p "127.0.0.1:${port}:${port}")
     PORT_MAP="${PORT_MAP}${PORT_MAP:+ }${port}:${port}"
   done
 fi
