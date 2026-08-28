@@ -7,14 +7,22 @@ import { StepProgress } from "~/components/StepProgress";
 import { TerminalPane } from "~/components/TerminalPane";
 import { TopBar } from "~/components/TopBar";
 
+const TITLE = "101-learn — kurs i terminal";
+const DESCRIPTION =
+  "Czytasz krok po lewej, uruchamiasz go w prawdziwym terminalu po prawej.";
+
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "101-learn — kurs i terminal" },
-    {
-      name: "description",
-      content:
-        "Czytasz krok po lewej, uruchamiasz go w prawdziwym terminalu po prawej.",
-    },
+    { title: TITLE },
+    { name: "description", content: DESCRIPTION },
+    // Someone will paste this link into a chat before the demo; a bare URL
+    // there says nothing about what is on the other side.
+    { property: "og:title", content: TITLE },
+    { property: "og:description", content: DESCRIPTION },
+    { property: "og:type", content: "website" },
+    { property: "og:image", content: "/kapst.jpeg" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "theme-color", content: "#0b0d10" },
   ];
 }
 

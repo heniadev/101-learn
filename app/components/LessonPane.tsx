@@ -16,8 +16,13 @@ export function LessonPane({
 }) {
   return (
     <section className="flex w-[46%] min-w-[360px] flex-none flex-col border-r border-line bg-panel max-lg:w-full max-lg:min-w-0 max-lg:border-r-0 max-lg:border-b">
-      <div className="min-h-0 flex-1 overflow-y-auto px-[34px] pt-[30px] pb-[22px]">
-        {children}
+      <div className="relative min-h-0 flex-1">
+        <div className="h-full overflow-y-auto px-[34px] pt-[30px] pb-[26px]">
+          {children}
+        </div>
+        {/* A hint that the step continues below the fold — the pane is the one
+            place where missing a paragraph means missing the command. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-linear-to-t from-panel to-transparent" />
       </div>
       {nav}
     </section>

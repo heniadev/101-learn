@@ -21,6 +21,7 @@ const STORE_KEY = "101-learn:terminal-zoom";
 
 export function TerminalPane({ src }: { src: string }) {
   const [step, setStep] = useState(DEFAULT_STEP);
+  const [ready, setReady] = useState(false);
 
   // A presenter setting, not course progress — it survives the reload that
   // resets the course itself (FR-080).
@@ -92,10 +93,20 @@ export function TerminalPane({ src }: { src: string }) {
         <iframe
           src={src}
           title="Terminal kursu"
+          onLoad={() => setReady(true)}
           className="absolute top-0 left-0 border-0 bg-term"
           style={{ zoom, width: `${100 / zoom}%`, height: `${100 / zoom}%` }}
           scrolling="no"
         />
+
+        {/* Until the terminal page answers, the pane is an unexplained black
+            rectangle — say what is happening instead. */}
+        {!ready && (
+          <div className="absolute inset-0 flex items-center justify-center gap-2.5 bg-term font-mono text-[13px] text-dim">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-mint" />
+            łączę z terminalem…
+          </div>
+        )}
       </div>
     </section>
   );
