@@ -52,8 +52,10 @@ Potem **<http://localhost:7888/>**. Po lewej krok kursu z przyciskami
 - **Terminal jest prawdziwy.** `ls`, `cd`, `git`, `vim` działają. Można w nim
   robić rzeczy spoza scenariusza i nic się nie zepsuje.
 - **Agent jest zarygowany.** Odpowiada wyłącznie z nagrań i tylko na ścieżce
-  wypisanej w lewym panelu. Wpisanie czegoś innego do `claude` daje błąd 400
-  z mocka — to zamierzone, nie awaria: demo nie dzwoni do prawdziwego API.
+  wypisanej w lewym panelu. Wpisanie czegoś innego daje odpowiedź „Podążaj za
+  przykładami z panelu po lewej" — to zamierzone, nie awaria: demo nie dzwoni
+  do prawdziwego API. Instruktor widzi chybienie w logu mocka jako
+  `MISS <skrót>`; `MOCK_LLM_MISS=error` zamienia je z powrotem na głośne 400.
 - **Trzymaj się panelu dosłownie**, łącznie z wyborami w oknach menu. Klucz
   odtwarzania obejmuje całą rozmowę, więc odejście od skryptu jest trwałe do
   końca sesji.
@@ -107,6 +109,56 @@ npm run mock-llm            # replay: tryb demo, chybienie to głośne 400
 
 Złe ujęcie usuwa się **kasując plik**, nie edytując go. Szczegóły i tabela
 zmiennych: [`scripts/mock-llm/README.md`](scripts/mock-llm/README.md).
+
+### Co wchodzi do klucza, a co nie
+
+Mock szuka nagrania po skrócie **całej rozmowy**, ale zanim policzy skrót,
+sprowadza ją do tego, co zrobił uczeń. Wypada z klucza wszystko, czym różnią
+się dwie maszyny albo dwa dni (`scripts/mock-llm/server.mjs`, `keyForText`):
+
+| wypada z klucza | zostaje w kluczu |
+|---|---|
+| bloki `<system-reminder>`, identyfikatory sesji, daty i godziny | tekst wpisany przez ucznia, dosłownie |
+| z `ls -la`: właściciel, grupa, liczba dowiązań, data | z `ls -la`: tryb, rozmiar, nazwa |
+| katalog skilli i typów agentów wstrzykiwany przez klienta | wyniki narzędzi i odpowiedzi agenta |
+| blok opisujący aktywny tryb uprawnień | model, na którym poszło wywołanie |
+
+Ostatnie dwa wiersze pojawiły się **po** pierwszym nagraniu i warto wiedzieć
+dlaczego. Katalog skilli nie pochodzi z tego repo ani z paczki npm klienta —
+przychodzi w czasie działania. Między nagraniem a próbą generalną doszły do
+niego cztery pozycje (`design`, `artifact-capabilities`, `schedule`,
+`claude-in-chrome`) i **wszystkie 52 nagrania ścieżki przestały być
+znajdowane naraz**, mimo że nikt nie tknął ani nagrań, ani `/course`.
+Aktualizacja klienta albo flaga na koncie potrafi to zrobić w dowolnym
+momencie, także w trakcie demo. Dlatego katalog jest z klucza wycięty:
+kluczujemy po tym, co zrobił uczeń, nigdy po tym, czym akurat był klient.
+
+### Kiedy trzeba przekluczować, a kiedy dograć
+
+To dwie różne awarie i mylenie ich kosztuje nagrania.
+
+**Przekluczenie** — gdy zmieniasz `keyForText`. Nagrania są dobre, tylko
+nazwane starymi skrótami. Nagłówek każdego pliku trzyma rozmowę dosłownie,
+więc klucze przelicza się bez dotykania API:
+
+```bash
+node scripts/mock-llm/rekey.mjs --dry-run   # co się zmieni
+node scripts/mock-llm/rekey.mjs             # przemianuj
+```
+
+**Dogranie** — gdy naprawdę brakuje ujęcia. Jedno przejście w
+`npm run mock-llm:auto`, potem powrót do `replay`.
+
+Kiedy coś chybia, nie zgaduj, czym się różni. Włącz zrzut hashowanego tekstu
+i porównaj go z nagłówkiem nagrania:
+
+```bash
+MOCK_LLM_DEBUG=1 npm run mock-llm     # chybienia lądują w scripts/mock-llm/misses/
+```
+
+Plik `misses/<skrót>.txt` zawiera dokładnie ten tekst, z którego policzono
+skrót. Wspólny prefiks z nagraniem pokazuje, w którym miejscu rozjechało się
+środowisko — a to zwykle mówi od razu, czy winne jest `/course`, czy klient.
 
 ### 3. Agent — samo przejście
 

@@ -94,6 +94,17 @@ Two consequences worth knowing, both load-bearing for the demo:
 | `MOCK_LLM_PORT` | `7999` | Listening port, loopback only |
 | `MOCK_LLM_RECORDINGS` | `./recordings` | Where recordings live |
 | `MOCK_LLM_UPSTREAM` | `https://api.anthropic.com` | Real API, used when recording |
-| `MOCK_LLM_REPLAY_SPEED` | `1` | `2` replays twice as fast; `0` is treated as `1` |
+| `MOCK_LLM_REPLAY_SPEED` | `4` | Divides the recorded gaps; `1` is the original pace, `0` is treated as `1` |
+| `MOCK_LLM_REPLAY_MAX_PAUSE` | `600` | Longest single pause between frames, ms, after scaling |
+| `MOCK_LLM_MISS` | `reply` | What a miss returns: `reply` (a normal agent turn) or `error` (HTTP 400 naming the prompt) |
+| `MOCK_LLM_MISS_TEXT` | `Podążaj za przykładami z panelu po lewej` | The text `reply` sends back |
+| `MOCK_LLM_DEBUG` | unset | `1` writes the exact hashed text of every miss to `../misses/<digest>.txt` |
 
 Recording needs `ANTHROPIC_API_KEY` in the environment; replay needs nothing.
+
+A miss is answered, not failed, because the person who sees it is the learner
+and an `API Error: 400` tells them nothing they can act on. Use
+`MOCK_LLM_MISS=error` for a rehearsal: there the expensive outcome is the
+opposite one -- a miss that passes for a normal answer and ships. Either way
+the server logs `MISS <digest> "<prompt>"`, so nothing is ever silent on the
+console.

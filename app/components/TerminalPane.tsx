@@ -42,6 +42,25 @@ export function TerminalPane({ src }: { src: string }) {
     }
   }, []);
 
+  // The iframe sits in the server-rendered markup and starts loading the moment
+  // the browser parses it -- well before React hydrates and attaches the onLoad
+  // handler below. ttyd is local and answers in milliseconds, so whenever the
+  // client bundle takes longer than that to arrive (a cold dev server is the
+  // usual way), the load event fires with nothing listening and `ready` stays
+  // false for good. The pane then sits on "łączę z terminalem…" over a shell
+  // that is running perfectly well underneath -- and because the overlay is
+  // absolutely positioned across the pane, it also swallows every click meant
+  // for the terminal. Ask the frame for its own state on mount rather than
+  // trusting an event that may already have come and gone.
+  useEffect(() => {
+    try {
+      if (frame.current?.contentDocument?.readyState === "complete") setReady(true);
+    } catch {
+      // TERMINAL_URL pointing at another origin: the document is off limits and
+      // the load event is the only signal we get.
+    }
+  }, []);
+
   const to = (next: number) => {
     const clamped = Math.min(STEPS.length - 1, Math.max(0, next));
     setStep(clamped);

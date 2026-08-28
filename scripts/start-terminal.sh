@@ -82,8 +82,42 @@ if [ "${TERMINAL_LLM_MOCK:-0}" = "1" ]; then
     echo "the live API." >&2
     exit 1
   fi
+  # Pin the models to the ones the recordings were made with, read out of the
+  # recordings themselves rather than written down here -- a constant in this
+  # file would be one more thing that can silently drift away from the tape.
+  #
+  # It matters because the model is part of the replay key. The client picks a
+  # model on its own and does not always pick the one that was recorded: it
+  # reaches for claude-opus-5[1m] for some internal work, and "[1m]" alone is
+  # enough to hash to a key nobody recorded. The small/fast model is pinned for
+  # the same reason -- the conversation title was recorded on haiku and the
+  # client now asks opus for it.
+  REC_DIR="${MOCK_LLM_RECORDINGS:-${REPO_DIR}/scripts/mock-llm/recordings}"
+  read -r MAIN_MODEL SMALL_MODEL <<<"$(node -e '
+    const fs = require("fs");
+    const dir = process.argv[1];
+    const count = {};
+    for (const f of fs.readdirSync(dir).filter((n) => n.endsWith(".sse"))) {
+      try {
+        const h = JSON.parse(fs.readFileSync(dir + "/" + f, "utf8").split("\n")[0]);
+        if (h.model) count[h.model] = (count[h.model] || 0) + 1;
+      } catch {}
+    }
+    const byUse = Object.entries(count).sort((a, b) => b[1] - a[1]).map(([m]) => m);
+    const small = byUse.find((m) => /haiku/.test(m)) ?? "";
+    const main = byUse.find((m) => !/haiku/.test(m)) ?? "";
+    process.stdout.write(main + " " + small);
+  ' "${REC_DIR}" 2>/dev/null)" || true
+
   TERMINAL_ENV=(env "ANTHROPIC_BASE_URL=${MOCK_LLM_URL}")
+  if [ -n "${MAIN_MODEL:-}" ]; then
+    TERMINAL_ENV+=("ANTHROPIC_MODEL=${MAIN_MODEL}")
+  fi
+  if [ -n "${SMALL_MODEL:-}" ]; then
+    TERMINAL_ENV+=("ANTHROPIC_SMALL_FAST_MODEL=${SMALL_MODEL}")
+  fi
   echo "start-terminal.sh: course shells use the mock LLM at ${MOCK_LLM_URL}." >&2
+  echo "start-terminal.sh: models pinned to '${MAIN_MODEL:-?}' / '${SMALL_MODEL:-?}' (from recordings)." >&2
 fi
 
 echo "start-terminal.sh: course shells start in ${START_DIR}." >&2
@@ -100,4 +134,4 @@ exec ttyd \
   -t disableLeaveAlert=true \
   -t disableResizeOverlay=true \
   "${TERMINAL_ENV[@]}" \
-  bash
+  bash --rcfile "${REPO_DIR}/scripts/course-shell.bashrc"

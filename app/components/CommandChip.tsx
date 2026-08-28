@@ -4,12 +4,17 @@ import { pasteIntoTerminal } from "~/lib/terminal-input";
 /**
  * The step's command, ready to run in the panel on the right.
  *
- * The button puts the command into the terminal but does NOT submit it -- no
- * Enter is sent. Running it stays the learner's move, which is the whole point
- * of the panel being a real shell (FR-030); what we remove is only the
- * retyping. When the terminal cannot be reached (TERMINAL_URL pointing at
- * another origin) it falls back to the clipboard, so the button always does
- * something.
+ * The button puts the command into the terminal and runs it.
+ *
+ * It used to stop short of Enter, on the reasoning that running the command
+ * should stay the learner's move. On a projector that reads as a dead button:
+ * the text appears, nothing happens, and the room waits while someone works
+ * out they have to reach for the keyboard. Pressing Enter is not the lesson --
+ * the panel is the script, and following it should take one click.
+ *
+ * When the terminal cannot be reached (TERMINAL_URL pointing at another
+ * origin) it falls back to the clipboard, which cannot submit anything, so the
+ * button still does something -- just less.
  */
 export function CommandChip({
   command,
