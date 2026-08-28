@@ -6,6 +6,20 @@ Działa w nim `git`, działają zwykłe edytory, a agent odpowiada ze skryptu.
 Scenariusz demo prowadzi przez pierwsze kroki toolkitu 101:
 `/101-init` → `/101-shape` → `/101-prd`.
 
+## Mockup
+
+**<https://heniadev.github.io/101-learn/>** — statyczna makieta ekranu kursu,
+źródło w [`mockup/index.html`](mockup/index.html), publikowana na gałąź
+`gh-pages` (`git subtree push --prefix mockup origin gh-pages`).
+
+Makieta pokazuje układ i przebieg: lewy panel z treścią kroku i bramką
+„Dalej", prawy panel z sesją agenta — rozruch `claude`, potem trzy komendy
+ścieżki. Terminal jest tu **odtwarzany ze skryptu**, w odróżnieniu od
+prawdziwej aplikacji: można w nim wpisać cokolwiek, działają `ls`, `cd`,
+`cat`, `less` i historia komend, a pliki pojawiają się dopiero wtedy, gdy
+krok je utworzy. Odpowiedzi agenta odpowiadają temu, co skille w
+`.claude/skills/` naprawdę robią.
+
 ## Ból: KAPŚT — Koalicja Agentów Przeciw Ścianie Tekstu
 
 Nauka pracy z agentami rozbija się o dokumentację. Ściana tekstu opisuje,
