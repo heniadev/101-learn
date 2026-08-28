@@ -462,8 +462,8 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Automated
 
-- [ ] 2.1 `npm run typecheck` kończy się kodem 0
-- [ ] 2.2 `npm run dev` odpowiada kodem 200: `curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/`
+- [x] 2.1 `npm run typecheck` kończy się kodem 0
+- [x] 2.2 `npm run dev` odpowiada kodem 200: `curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/`
 
 #### Manual
 
@@ -475,7 +475,7 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Automated
 
-- [ ] 3.1 Po `npm run terminal` terminal odpowiada kodem 200: `curl -s -o /dev/null -w '%{http_code}' http://localhost:7681/`
+- [x] 3.1 Po `npm run terminal` terminal odpowiada kodem 200: `curl -s -o /dev/null -w '%{http_code}' http://localhost:7681/` — 1ec27ac
 
 #### Manual
 
@@ -487,8 +487,8 @@ o terminalu i nieprawdziwe o tym, co widzi uczący się.
 
 #### Automated
 
-- [ ] 4.1 `npm run typecheck` kończy się kodem 0
-- [ ] 4.2 Odpowiedź strony głównej zawiera `iframe` z adresem terminala: `curl -s http://localhost:5173/ | grep -q '<iframe'`
+- [x] 4.1 `npm run typecheck` kończy się kodem 0 — 7113f39
+- [x] 4.2 Odpowiedź strony głównej zawiera `iframe` z adresem terminala: `curl -s http://localhost:5173/ | grep -q '<iframe'` — 7113f39
 
 #### Manual
 
