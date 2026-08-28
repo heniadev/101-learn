@@ -15,9 +15,16 @@ import { useEffect, useRef, useState } from "react";
  * The iframe's own box is scaled too, hence the 100/zoom sizing that keeps it
  * filling the pane.
  */
-const STEPS = [0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2, 2.5];
+// Enlarge only. Below 1 the compensating `width: 100/zoom` makes the iframe
+// wider and taller than the pane that holds it, and the terminal spills past
+// the viewport on the right and the bottom. Shrinking also serves nobody: the
+// control exists for the back row of a room, and 100% is already the size the
+// pane was designed around.
+const STEPS = [1, 1.15, 1.3, 1.5, 1.75, 2, 2.5];
 const DEFAULT_STEP = STEPS.indexOf(1);
-const STORE_KEY = "101-learn:terminal-zoom";
+// v2: the step list changed, and a stored index from the old one would restore
+// a different size than it named.
+const STORE_KEY = "101-learn:terminal-zoom:v2";
 
 export function TerminalPane({ src }: { src: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
