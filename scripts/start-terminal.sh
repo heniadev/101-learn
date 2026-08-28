@@ -44,6 +44,24 @@ TERMINAL_THEME='{
   "brightYellow": "#ffd79b", "brightBlue": "#a5dbff", "brightMagenta": "#d6cdff",
   "brightCyan": "#9df0e6", "brightWhite": "#e7eaef"
 }'
+# The learner's shell talks to the mock LLM, not the live API, so the demo is
+# deterministic and costs nothing (scripts/mock-llm/README.md). Scoped to the
+# shells ttyd spawns -- your own agent session in this container is untouched,
+# which is what lets you keep working against the real model while the course
+# terminal replays. Opt-in, because the mock is useless until it has
+# recordings.
+TERMINAL_ENV=()
+if [ "${TERMINAL_LLM_MOCK:-0}" = "1" ]; then
+  MOCK_LLM_URL="${MOCK_LLM_URL:-http://127.0.0.1:${MOCK_LLM_PORT:-7999}}"
+  if ! curl -sf -o /dev/null --max-time 2 "${MOCK_LLM_URL}/health"; then
+    echo "start-terminal.sh: TERMINAL_LLM_MOCK=1 but no mock at ${MOCK_LLM_URL}." >&2
+    echo "Start it with 'npm run mock-llm', or unset TERMINAL_LLM_MOCK to use" >&2
+    echo "the live API." >&2
+    exit 1
+  fi
+  TERMINAL_ENV=(env "ANTHROPIC_BASE_URL=${MOCK_LLM_URL}")
+  echo "start-terminal.sh: course shells use the mock LLM at ${MOCK_LLM_URL}." >&2
+fi
 
 exec ttyd \
   --port "${TERMINAL_PORT}" \
@@ -56,4 +74,5 @@ exec ttyd \
   -t cursorBlink=true \
   -t disableLeaveAlert=true \
   -t disableResizeOverlay=true \
+  "${TERMINAL_ENV[@]}" \
   bash

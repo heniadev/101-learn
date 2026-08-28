@@ -7,7 +7,10 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "terminal": "bash scripts/start-terminal.sh",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "mock-llm": "node scripts/mock-llm/server.mjs",
+    "mock-llm:record": "MOCK_LLM_MODE=record node scripts/mock-llm/server.mjs",
+    "mock-llm:auto": "MOCK_LLM_MODE=auto node scripts/mock-llm/server.mjs"
   },
   "dependencies": {
     "@react-router/node": "^8",
