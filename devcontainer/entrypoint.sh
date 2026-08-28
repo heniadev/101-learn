@@ -59,6 +59,33 @@ if ! getent passwd "$TARGET_UID" >/dev/null; then
   echo "student:x:${TARGET_UID}:${TARGET_GID}::/home/agent:/bin/bash" >> /etc/passwd
 fi
 
+# /course is where the course terminal starts and where the learner's own
+# context/ gets created by /101-init. It has to exist before privileges are
+# dropped, because its parent is / and the unprivileged user cannot create it
+# -- and it has to be OWNED by that user, or the very first course command
+# fails on permissions rather than on anything the learner did.
+#
+# Only the path matters to the replay key; owner, mode, link count and mtime
+# are normalised away (scripts/mock-llm/server.mjs, keyForText), so handing
+# the directory to the learner does not cost a recording match.
+#
+# Recreated empty on every container start, on purpose: a leftover context/
+# from a previous walk makes /101-init report a skeleton that already exists,
+# which is not the demo. COURSE_TOOLKIT points at the 101 toolkit to seed;
+# with nothing there, /course is still created and the skills are simply
+# absent, which start-terminal.sh's own checks will surface.
+COURSE_DIR="${COURSE_DIR:-/course}"
+COURSE_TOOLKIT="${COURSE_TOOLKIT:-/workspace/.claude}"
+rm -rf "${COURSE_DIR}"
+install -d -m 755 -o "${TARGET_UID}" -g "${TARGET_GID}" "${COURSE_DIR}"
+if [ -d "${COURSE_TOOLKIT}/skills" ]; then
+  cp -a "${COURSE_TOOLKIT}" "${COURSE_DIR}/.claude"
+  chown -R "${TARGET_UID}:${TARGET_GID}" "${COURSE_DIR}/.claude"
+  chmod -R u=rwX,go=rX "${COURSE_DIR}/.claude"
+else
+  echo "entrypoint.sh: no toolkit at ${COURSE_TOOLKIT}/skills; ${COURSE_DIR} left empty." >&2
+fi
+
 # gosu looks up the target UID in /etc/passwd to set $HOME the way `su`
 # would; when that UID has no entry there (the normal case — it's your host
 # UID, not a user baked into the image), it resets HOME to `/` instead of
