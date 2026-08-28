@@ -20,6 +20,50 @@ prawdziwej aplikacji: można w nim wpisać cokolwiek, działają `ls`, `cd`,
 krok je utworzy. Odpowiedzi agenta odpowiadają temu, co skille w
 `.claude/skills/` naprawdę robią.
 
+## Odpalenie na szybko (hack-n-dirty)
+
+Stan na dziś, bez upiększeń. Wszystko dzieje się **wewnątrz kontenera**;
+na zewnątrz publikowany jest tylko port aplikacji.
+
+```bash
+devcontainer/run.sh                       # kontener + port 7888 na loopbacku hosta
+```
+
+`entrypoint.sh` zakłada przy starcie `/course` — pusty katalog z toolkitem,
+na własność użytkownika kursu. To tam uczeń pracuje i tam powstaje jego
+`context/`.
+
+W kontenerze trzy procesy, każdy w osobnej powłoce:
+
+```bash
+npm run mock-llm                          # 1. odtwarzacz nagrań (port 7999, loopback)
+TERMINAL_LLM_MOCK=1 npm run terminal      # 2. terminal ttyd (port 7681, loopback)
+npm run dev                               # 3. aplikacja (port 7888)
+```
+
+Kolejność ma znaczenie tylko między 1 a 2: `start-terminal.sh` sprawdza, czy
+mock odpowiada, i odmawia startu, jeśli nie.
+
+Potem **<http://localhost:7888/>**. Po lewej krok kursu z przyciskami
+„Wstaw”, po prawej żywa powłoka.
+
+### Czego się spodziewać, a czego nie
+
+- **Terminal jest prawdziwy.** `ls`, `cd`, `git`, `vim` działają. Można w nim
+  robić rzeczy spoza scenariusza i nic się nie zepsuje.
+- **Agent jest zarygowany.** Odpowiada wyłącznie z nagrań i tylko na ścieżce
+  wypisanej w lewym panelu. Wpisanie czegoś innego do `claude` daje błąd 400
+  z mocka — to zamierzone, nie awaria: demo nie dzwoni do prawdziwego API.
+- **Trzymaj się panelu dosłownie**, łącznie z wyborami w oknach menu. Klucz
+  odtwarzania obejmuje całą rozmowę, więc odejście od skryptu jest trwałe do
+  końca sesji.
+- **Reset:** przeładowanie strony cofa kurs do kroku 1. Świeże `/course`
+  wymaga restartu kontenera.
+- **Rozszerzenia przeglądarki** dopisujące atrybuty do `<body>` potrafiły
+  psuć hydratację i przeładowywać terminal w pętli; jest na to obejście w
+  `app/root.tsx`, ale w razie dziwnego zachowania panelu najszybszym testem
+  jest tryb incognito.
+
 ## Jak instruktor przygotowuje kurs
 
 Kurs nie jest pisany — jest **nagrywany**. Instruktor raz przechodzi ścieżkę
@@ -31,20 +75,23 @@ Trzy elementy, w kolejności, w której się ich używa.
 
 ### 1. Skrypt setupujący — `scripts/provision-course.sh`
 
-Odtwarza `/course`, czyli katalog, w którym uczeń zaczyna. Musi być **pusty
-poza `.claude`** — bez gita, bez `context/` — bo pierwsza rzecz, jaką robi
+`/course` to katalog, w którym uczeń zaczyna. Musi być **pusty poza
+`.claude`** — bez gita, bez `context/` — bo pierwsza rzecz, jaką robi
 `/101-init`, to `ls -la /course/`, a ten wynik wchodzi do klucza nagrania.
 
+Normalnie nie trzeba nic robić: `devcontainer/entrypoint.sh` zakłada go przy
+starcie kontenera, na własność użytkownika kursu. Skrypt przydaje się do
+**resetu między próbami** bez restartu kontenera:
+
 ```bash
-sudo scripts/provision-course.sh          # wymaga roota: rodzicem jest /
+sudo scripts/provision-course.sh --force   # wymaga roota: rodzicem jest /
 ```
 
-Skrypt drukuje `ls -la`, które zobaczy agent, i ostrzega, gdy coś odbiega od
-nagrania: tryb `.claude`, liczba katalogów skilli, czytelność toolkitu dla
-użytkownika powłoki. **Nagrywaj i odtwarzaj jako ten sam użytkownik** —
-właściciel i tryb plików pojawiają się w wynikach `ls` i są częścią klucza,
-a użytkownik nagrywający musi mieć prawo zapisu w `/course`, bo to on tworzy
-tam `context/`.
+Ze ścieżki do klucza wchodzi **tylko ścieżka**. Właściciel, tryb, liczba
+dowiązań i data z `ls -la` są normalizowane
+(`scripts/mock-llm/server.mjs`, `keyForText`), więc nagrywać i odtwarzać
+można jako różni użytkownicy i w różne dni. Nie było tak od początku — to
+kosztowało pół dnia i opisane jest niżej, w retrospektywie.
 
 ### 2. Nagrywarka — `scripts/mock-llm/`
 

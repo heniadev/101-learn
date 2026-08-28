@@ -15,18 +15,19 @@ klucza przez wyniki narzędzi — pierwsza komenda `/101-init` robi
 `ls -la /course/` i cały ten wynik jest częścią rozmowy.
 
 ```bash
-sudo scripts/provision-course.sh          # odtwarza /course
-TERMINAL_LLM_MOCK=1 npm run terminal      # powłoki startują w /course
+TERMINAL_LLM_MOCK=1 npm run terminal            # powłoki startują w /course
+sudo scripts/provision-course.sh --force        # reset bez restartu kontenera
 ```
 
-`start-terminal.sh` wykrywa `/course` sam; `TERMINAL_CWD` nadpisuje wybór.
-Bez `/course` powłoka startuje w repo i **krok 1 chybi**.
+`entrypoint.sh` zakłada `/course` przy starcie kontenera, na własność
+użytkownika kursu. `start-terminal.sh` wykrywa go sam; `TERMINAL_CWD`
+nadpisuje wybór. Bez `/course` powłoka startuje w repo i **krok 1 chybi**.
 
-Co dokładnie musi się zgadzać w `/course` i dlaczego — w komentarzu na
-początku `scripts/provision-course.sh`. W skrócie: właściciel `root:root`,
-tryb 755, wewnątrz **wyłącznie** `.claude` (bez gita, bez `context/`).
-Normalizator usuwa daty, godziny i identyfikatory sesji — **nie** usuwa
-ścieżki, właściciela, trybu ani liczby dowiązań.
+Co musi się zgadzać: **ścieżka** i to, że wewnątrz jest wyłącznie `.claude`
+(bez gita, bez `context/` z poprzedniego przejścia). Właściciel, tryb,
+liczba dowiązań i data **nie mają znaczenia** — normalizator sprowadza linię
+listingu do trybu, rozmiaru i nazwy. Uczeń musi mieć prawo zapisu, bo to on
+tworzy tam `context/`.
 
 ## 2. Tryb `replay`, nie `auto`
 
@@ -56,19 +57,6 @@ samego Claude Code (podpowiedzi następnego wpisu, tytuł rozmowy), nie ścieżk
 kursu. Jeśli podczas próby pojawi się ich więcej, w `replay` chybią 400.
 Dogrywa się je jednym przejściem w `auto`, po czym wraca do `replay`.
 
-## 5. Nie odtwarzaj `/course` po 28 sierpnia
-
-Normalizator usuwa daty w formacie `2026-08-28` i godziny `12:34` — **nie**
-usuwa `Aug 28` z wyjścia `ls -la`. Znacznik czasu `.claude` przenosi `cp -a`,
-ale sam `/course` powstaje na nowo i dostaje datę dnia, w którym go
-odtworzysz. Odtworzony 29 sierpnia da w turze 4 `Aug 29` i chybi.
-
-Jeśli musisz, wyrównaj katalog po odtworzeniu:
-
-```bash
-sudo touch -d '2026-08-28 11:51' /course
-```
-
 ## Stan weryfikacji (2026-08-28)
 
 Sprawdzone automatem, bez przejścia ścieżki:
@@ -78,9 +66,11 @@ Sprawdzone automatem, bez przejścia ścieżki:
 | kompletność strumienia (`message_stop`) | 53/53 |
 | zdarzenia `error` w nagraniach | 0 |
 | sekrety (klucze API, `creds.yaml`, wzorce) | 0 trafień |
-| odtwarzanie pierwszej tury w trybie `replay` | 2/2 |
+| odtwarzanie pierwszej tury w trybie `replay` | 2/2, także po przekluczeniu |
 | `ls -la /course/` po znormalizowaniu vs tura 4 | identyczne |
 | wersja toolkitu vs nagranie | 30 katalogów skilli, rozmiary zgodne |
+| listing jako inny użytkownik i w inny dzień | ten sam digest |
+| przekluczenie 53 nagrań | 50 zmienionych nazw, 0 kolizji |
 
 **Niesprawdzone:** trafienie 51 tur środkowych. Ich klucz zależy od pełnej
 historii z wynikami narzędzi, więc jedynym testem jest przejście ścieżki w
