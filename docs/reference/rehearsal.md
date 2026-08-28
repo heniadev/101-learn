@@ -115,13 +115,26 @@ Sprawdzone automatem, bez przejścia ścieżki:
 | przekluczenie po zmianie normalizatora | 52 zmienione nazwy, 0 kolizji |
 | terminal przez proxy aplikacji | HTTP 200, upgrade WebSocket 101 |
 
-**Niesprawdzone:** trafienie 51 tur środkowych. Ich klucz zależy od pełnej
-historii z wynikami narzędzi, więc jedynym testem jest przejście ścieżki w
-trybie `replay` w odtworzonym `/course`. To jest treść próby generalnej.
+**Przejście całej ścieżki (2026-08-28, po restarcie kontenera):**
 
-**Znane chybienia, nieblokujące:** `user: quota` i wywołanie tytułu rozmowy.
-To wywołania poboczne samego klienta, nie ścieżka kursu — 400 na nich nie
-pokazuje się uczniowi. Tytuł ma nagranie, ale pod modelem
-`claude-haiku-4-5-20251001`, a klient liczy je teraz jako `claude-opus-5`;
-model wchodzi do klucza celowo, więc dogrywa się je jednym przejściem w
-`auto`.
+| co | wynik |
+|---|---|
+| tury odtworzone dokładnym kluczem | **52 / 52** |
+| różne nagrania użyte | 52 (każde raz) |
+| chybienia | 1 — `user: quota`, hydraulika klienta |
+| fallback dopasowania treścią | **wyłączony** (`MOCK_LLM_NEAR=0`) |
+| co powstało w `/course` | `shape-notes.md` 10 411 B, `prd.md` 6 973 B, `contract-surfaces.md` |
+
+To jest ta próba generalna, o którą chodziło: nie automat na nagraniach, tylko
+przejście ścieżki człowiekiem, w trybie `replay`, w odtworzonym `/course`,
+z wyłączoną siatką bezpieczeństwa. Wcześniejsza pozycja „niesprawdzone:
+trafienie 51 tur środkowych" jest tym zamknięta.
+
+Trzy rzeczy musiały wyjść z klucza, żeby to przeszło — katalog skilli klienta,
+blok trybu uprawnień i kolejność wyników równoległych narzędzi — oraz jedna
+musiała zniknąć ze środowiska: bramka `auto mode`, która przed każdą komendą
+`bash` pyta model o bezpieczeństwo, a tego pytania nikt nie nagrał. Szczegóły
+w sekcji 5 i w `scripts/course-shell.bashrc`.
+
+**Znane chybienie, nieblokujące:** `user: quota` — wywołanie poboczne samego
+klienta, nie ścieżka kursu. Uczeń go nie widzi.
