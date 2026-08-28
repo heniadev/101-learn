@@ -199,7 +199,7 @@
     <div class="term-head">
       <div class="tl"><i></i><i></i><i></i></div>
       <div class="title" id="termtitle">bash — /workspace</div>
-      <div class="hint" id="hint">kliknij i uderz w dowolne klawisze</div>
+      <div class="hint" id="hint">kliknij i pisz — Enter uruchamia, Tab uzupełnia</div>
     </div>
     <div class="screen" id="screen" tabindex="0"></div>
   </section>
@@ -221,7 +221,7 @@ const STEPS = [
     body: [
       "Toolkit 101 nie jest programem, który się odpala — to zestaw <em>skilli</em> wpiętych w agenta kodującego. Rozmawiasz z agentem, a skille wywołujesz komendą zaczynającą się od ukośnika.",
       "Dlatego pierwszy ruch jest zawsze ten sam: uruchamiasz agenta w katalogu projektu. Wszystko, co zrobisz dalej, dzieje się w tej jednej sesji i zostaje na dysku w plikach.",
-      "Uruchom go w terminalu po prawej. Uderz w dowolne klawisze — komenda dopisze się sama."
+      "Wpisz komendę w terminalu po prawej i naciśnij Enter — Tab ją uzupełni. Możesz też wpisać cokolwiek innego. Terminal odpowie; kursu to nie ruszy."
     ],
     command: "claude",
     out: [
@@ -413,6 +413,29 @@ const STEPS = [
   }
 ];
 
+/* Wpisać można cokolwiek — tylko komenda kroku rusza kurs. Reszta dostaje
+   odprawę: w powłoce po bashowemu, w sesji agenta głosem agenta. */
+const SHELL_SNARK = [
+  "-bash: {w}: weź się skup człowieku",
+  "-bash: {w}: command not found (ale odwaga się liczy)",
+  "-bash: {w}: nie ta ścieżka — właściwa jest w lewym panelu",
+  "-bash: {w}: 404. Komenda nie istnieje, kurs istnieje.",
+  "-bash: {w}: próbowałem, nic z tego. Wpisz {c}."
+];
+const AGENT_SNARK = [
+  "⏺ Czas to piniądz! Może już zaczniemy?",
+  "⏺ Ładne. Nie zapisuję. Wpisz {c} i zobaczysz plik na dysku.",
+  "⏺ Jestem atrapą odtwarzaną ze skryptu, a w skrypcie jest dziś jedno: {c}",
+  "⏺ Rozumiem intencję. Podtrzymuję rekomendację: {c}",
+  "⏺ (myślę…) …nie. {c}. Serio."
+];
+const DONE_SNARK = [
+  "⏺ Ten krok masz z głowy — „Dalej” po lewej.",
+  "⏺ Zrobione. Dwa razy tego samego pliku nie napiszę.",
+  "⏺ Kurs czeka w lewym panelu, nie tutaj."
+];
+let snarkN = 0;
+
 const pane   = document.getElementById("pane");
 const screen = document.getElementById("screen");
 const hint   = document.getElementById("hint");
@@ -422,7 +445,7 @@ const backB  = document.getElementById("back");
 const count  = document.getElementById("count");
 
 let idx = 0;
-let typed = 0;                       // ile znaków komendy jest już wpisane
+let buf = "";                        // to, co uczący się naprawdę wpisał
 let busy = false;                    // trwa odtwarzanie odpowiedzi
 let done = STEPS.map(() => false);
 let outro = false;
@@ -436,27 +459,50 @@ function ps1(step){
     : '<span class="ps1">learner@101</span><span class="dim">:</span><span class="cwd">/workspace</span><span class="dim">$</span> ';
 }
 
-function promptHTML(withCursor){
+function promptHTML(withCursor, text){
   const s = STEPS[idx], cmd = s.command;
-  return ps1(s) + esc(cmd.slice(0, typed))
+  const t = text === undefined ? buf : text;
+  // podpowiedź-widmo tylko dopóki wpisane jest początkiem komendy kroku
+  const ghost = (!done[idx] && cmd.indexOf(t) === 0) ? cmd.slice(t.length) : "";
+  return ps1(s) + esc(t)
        + (withCursor ? '<span class="cursor"></span>' : "")
-       + '<span class="ghost">' + esc(cmd.slice(typed)) + '</span>';
+       + '<span class="ghost">' + esc(ghost) + '</span>';
 }
 
 function paint(){
   const lines = history.map(h => '<div class="l ' + h.c + '">' + h.t + '</div>').join("");
-  screen.innerHTML = lines + (busy || done[idx] || outro ? "" : '<div class="l">' + promptHTML(true) + '</div>');
+  screen.innerHTML = lines + (busy || outro ? "" : '<div class="l">' + promptHTML(true) + '</div>');
   screen.classList.toggle("busy", busy);
   screen.scrollTop = screen.scrollHeight;
 }
 
 function push(text, cls){ history.push({ t: text, c: cls || "" }); }
 
+function snark(pool, said){
+  const step = STEPS[idx];
+  const line = pool[snarkN++ % pool.length]
+    .replace("{w}", (said.split(/\s+/)[0] || "coś").slice(0, 24))
+    .replace(/\{c\}/g, step.command);
+  push(esc(line), pool === SHELL_SNARK ? "warn" : "agent");
+  push("", "");
+}
+
+function submit(){
+  const step = STEPS[idx];
+  if (busy || outro) return;
+  push(promptHTML(false, buf), "");
+  const said = buf.trim();
+  buf = "";
+  if (done[idx]){ snark(DONE_SNARK, said); paint(); return; }
+  if (said === step.command){ run(); return; }
+  if (said === ""){ paint(); return; }
+  snark(step.ps === "agent" ? AGENT_SNARK : SHELL_SNARK, said);
+  paint();
+}
+
 function run(){
   if (busy || done[idx]) return;
   const step = STEPS[idx];
-  typed = step.command.length;
-  push(promptHTML(false), "");
   busy = true;
   hint.textContent = "agent pracuje…";
   paint();
@@ -466,7 +512,7 @@ function run(){
     if (i >= step.out.length){
       busy = false;
       done[idx] = true;
-      hint.textContent = "krok wykonany";
+      hint.textContent = "krok wykonany — „Dalej” po lewej";
       if (idx === 0) ttitle.textContent = "claude — /workspace";
       render();
       return;
@@ -480,18 +526,15 @@ function run(){
 
 screen.addEventListener("click", () => screen.focus());
 screen.addEventListener("keydown", e => {
-  if (busy || outro || done[idx]) return;
+  if (busy || outro) return;
   const cmd = STEPS[idx].command;
-  if (e.key === "Enter"){
-    e.preventDefault();
-    if (typed >= cmd.length) run(); else { typed = cmd.length; paint(); }
-    return;
-  }
-  if (e.key === "Backspace"){ e.preventDefault(); typed = Math.max(0, typed - 1); paint(); return; }
-  if (e.key === "Tab"){ e.preventDefault(); typed = cmd.length; paint(); return; }
+  if (e.key === "Enter"){ e.preventDefault(); submit(); return; }
+  if (e.key === "Backspace"){ e.preventDefault(); buf = buf.slice(0, -1); paint(); return; }
+  if (e.key === "Tab"){ e.preventDefault(); if (!done[idx] && cmd.indexOf(buf) === 0) buf = cmd; paint(); return; }
+  if (e.key === "Escape"){ e.preventDefault(); buf = ""; paint(); return; }
   if (e.key.length === 1 && !e.ctrlKey && !e.metaKey){
     e.preventDefault();
-    typed = Math.min(cmd.length, typed + 1);
+    if (buf.length < 120) buf += e.key;
     paint();
   }
 });
@@ -527,14 +570,14 @@ function render(){
       : "");
 
   const rb = document.getElementById("runb");
-  if (rb) rb.onclick = () => { screen.focus(); run(); };
+  if (rb) rb.onclick = () => { screen.focus(); buf = s.command; submit(); };
 
   count.textContent = idx === 0 ? "przed startem" : "krok " + idx + " z 3";
   backB.disabled = idx === 0;
   nextB.disabled = !done[idx];
   nextB.style.display = "";
   nextB.textContent = idx === STEPS.length - 1 ? "Zakończ" : "Dalej";
-  if (!done[idx]) hint.textContent = "kliknij i uderz w dowolne klawisze";
+  if (!done[idx]) hint.textContent = "kliknij i pisz — Enter uruchamia, Tab uzupełnia";
   paint();
 }
 
@@ -561,14 +604,14 @@ function renderOutro(){
 nextB.onclick = () => {
   if (!done[idx]) return;
   if (idx === STEPS.length - 1){ outro = true; render(); return; }
-  idx++; typed = 0;
+  idx++; buf = "";
   push("", "");
   render();
   screen.focus();
 };
 backB.onclick = () => {
   if (outro){ outro = false; render(); return; }
-  if (idx > 0){ idx--; typed = done[idx] ? STEPS[idx].command.length : 0; render(); }
+  if (idx > 0){ idx--; buf = ""; render(); }
 };
 
 render();
