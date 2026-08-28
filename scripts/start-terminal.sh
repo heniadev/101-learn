@@ -11,6 +11,29 @@ TERMINAL_PORT="${TERMINAL_PORT:-7681}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Where the learner's shell starts. This is NOT cosmetic when the mock LLM is
+# in play: the mock keys a recorded answer on the whole conversation, and the
+# conversation carries absolute paths inside tool results (`ls -la /course/`,
+# "File created successfully at: /course/..."). The recordings in
+# scripts/mock-llm/recordings/ were captured with the shell in /course, so a
+# shell started anywhere else misses every key from the second turn on.
+#
+# Default stays REPO_DIR, so a container without /course behaves exactly as
+# before. /course is picked up automatically when it exists, because the demo
+# should not depend on remembering a flag.
+if [ -n "${TERMINAL_CWD:-}" ]; then
+  START_DIR="${TERMINAL_CWD}"
+elif [ -d /course ]; then
+  START_DIR=/course
+else
+  START_DIR="${REPO_DIR}"
+fi
+
+if [ ! -d "${START_DIR}" ]; then
+  echo "start-terminal.sh: TERMINAL_CWD='${START_DIR}' is not a directory." >&2
+  exit 1
+fi
+
 if ! command -v ttyd >/dev/null 2>&1; then
   echo "start-terminal.sh: 'ttyd' was not found in PATH." >&2
   echo "The terminal binary ships with the devcontainer image: rebuild it" >&2
@@ -63,11 +86,13 @@ if [ "${TERMINAL_LLM_MOCK:-0}" = "1" ]; then
   echo "start-terminal.sh: course shells use the mock LLM at ${MOCK_LLM_URL}." >&2
 fi
 
+echo "start-terminal.sh: course shells start in ${START_DIR}." >&2
+
 exec ttyd \
   --port "${TERMINAL_PORT}" \
   --interface 127.0.0.1 \
   --writable \
-  --cwd "${REPO_DIR}" \
+  --cwd "${START_DIR}" \
   -t "theme=${TERMINAL_THEME}" \
   -t 'fontFamily=SFMono-Regular, ui-monospace, JetBrains Mono, Menlo, Consolas, monospace' \
   -t fontSize=14 \
