@@ -17,6 +17,9 @@ układu w przeglądarce (dwa panele po 640 px przy oknie 1280, `tput cols`=78,
 `lines`=52, brak przewijania w poziomie) oraz serwerowe sprawdzenie
 `TERMINAL_URL`.
 
-Znane kosmetyczne odchylenie spoza kryteriów: prompt w terminalu brzmi
-`I have no name!@…`, bo gosu schodzi na UID hosta, którego nie ma w
-`/etc/passwd` obrazu.
+Zamknięte po przeglądzie: prompt w terminalu brzmiał `I have no name!@…`, bo
+gosu schodzi na UID hosta, którego nie ma w `/etc/passwd` obrazu.
+`entrypoint.sh` dopisuje teraz temu UID-owi wpis o nazwie `student` (UID jest
+hosta, więc obraz nie może go nieść — musi powstać przy starcie), co naprawia
+także `whoami` i `id -un`. Bieżąca instancja wstała przed tą zmianą, więc do
+najbliższego restartu prompt trzyma `~/.bashrc` na wolumenie domowym.

@@ -48,6 +48,17 @@ done
 : "${TARGET_UID:?TARGET_UID must be set by run.sh}"
 : "${TARGET_GID:?TARGET_GID must be set by run.sh}"
 
+# Give the target UID a name. Without an /etc/passwd entry every lookup of
+# it fails, and anything rendering a user name -- bash's `\u` in PS1 first
+# and foremost -- prints "I have no name!". The learner sees that on every
+# prompt line in the course terminal, so the shell looks broken before they
+# type anything. The UID is the host's, unknown at build time, which is why
+# the image cannot carry this entry and it has to be written at startup.
+# Home stays /home/agent: that is where the persisted volume is mounted.
+if ! getent passwd "$TARGET_UID" >/dev/null; then
+  echo "student:x:${TARGET_UID}:${TARGET_GID}::/home/agent:/bin/bash" >> /etc/passwd
+fi
+
 # gosu looks up the target UID in /etc/passwd to set $HOME the way `su`
 # would; when that UID has no entry there (the normal case — it's your host
 # UID, not a user baked into the image), it resets HOME to `/` instead of
